@@ -1,0 +1,11 @@
+arxiv-sanity-preserver/
+.vscode/
+.env/
+__pycache__/
+data/
+*.json
+*.gz
+db.p
+*.zip
+.DS_Store
+
