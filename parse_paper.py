@@ -24,8 +24,8 @@ class LatexParserException(Exception):
 
 
 class MaxSectionSizeException(LatexParserException):
-    def __init__(self):
-        msg = "Number of Sections are Larger than Maximum allowed for a Parsed Document"
+    def __init__(self,avail,limit):
+        msg = "Number of Sections %d are Larger than Maximum allowed (%d) for a Parsed Document"%(avail,limit)
         super(MaxSectionSizeException, self).__init__(msg)
 
 
@@ -112,7 +112,7 @@ class Section():
             raise SectionSerialisationException('"name" Attribute missing in object')
         generated_obj = cls(name=json_object['name'])
         generated_obj.text = json_object['text']
-        for val in json_object['sub']:
+        for val in json_object['subsections']:
             generated_obj.subsections.append(cls(val))
         
         return generated_obj

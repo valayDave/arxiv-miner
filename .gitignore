@@ -9,3 +9,4 @@ db.p
 *.zip
 .DS_Store
 opendetex*/
+DummyData/
