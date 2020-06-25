@@ -9,6 +9,7 @@ import os
 import tarfile
 import glob
 import json
+import random
 from parse_paper import \
     get_tex_tree,\
     LatexInformationParser,\
@@ -19,6 +20,8 @@ from parse_paper import \
 
 import datetime
 from typing import List
+from collections import Counter
+
 
 # from subprocess import Popen, PIPE
 
@@ -27,6 +30,10 @@ from typing import List
 #     (output, err) = process.communicate()
 #     exit_code = process.wait()
 #     return output
+
+class ArxivPaper:
+    pass
+    
 class ArxivDocument(Section):
     def __init__(self, 
                 name=None,
@@ -93,31 +100,151 @@ class ArxivPaperMeta():
     def to_json(self):
         return {**self.__dict__}
 
+
+class ArxivLoaderFilter:
+    pdf_only : bool
+    parsing_errors :bool
+    min_latex_pages: int
+    max_latex_pages: int
+    sample_size:int
+    
+    def __init__(self,
+                pdf_only = None,\
+                parsing_errors = None,\
+                min_latex_pages = None,\
+                max_latex_pages = None,\
+                sample_size = None,\
+                ):
+        self.pdf_only = pdf_only
+        self.parsing_errors = parsing_errors
+        self.min_latex_pages = min_latex_pages
+        self.max_latex_pages = max_latex_pages
+        self.sample_size = sample_size
+        
+
+    @property
+    def is_active(self):
+        if self.pdf_only is not None:
+            return True
+        if self.parsing_errors is not None:
+            return True
+        if self.min_latex_pages is not None:
+            return True
+        if self.max_latex_pages is not None:
+            return True
+        return False
+
+class FSArxivLoadingFactory:
+    
+    @staticmethod
+    def latex_failed_loader(papers_root_path):
+        ax_filter = ArxivLoaderFilter(parsing_errors=True,pdf_only=False)
+        loader_obj = ArxivLoader(papers_root_path,filter_object = ax_filter)
+        return loader_obj
+    
+    @staticmethod
+    def sampled_loader(papers_root_path,num_samples):
+        ax_filter = ArxivLoaderFilter(sample_size = num_samples)
+        loader_obj = ArxivLoader(papers_root_path,filter_object = ax_filter)
+        return loader_obj
+    
+    @staticmethod
+    def latex_parsed_loader(papers_root_path):
+        ax_filter = ArxivLoaderFilter(pdf_only=False,parsing_errors=False)
+        loader_obj = ArxivLoader(papers_root_path,filter_object = ax_filter)
+        return loader_obj
+    
+    @staticmethod
+    def latex_page_range_loader(papers_root_path,\
+                                min_latex_pages,
+                                max_latex_pages):
+        ax_filter = ArxivLoaderFilter(min_latex_pages=min_latex_pages,max_latex_pages=max_latex_pages)
+        loader_obj = ArxivLoader(papers_root_path,filter_object = ax_filter)
+        return loader_obj                
+  
+
 class ArxivLoader():
     """ArxivLoader
     Loads Arxiv Paper objects from Folder Root.
 
+    Loader Features : 
+        1. Filter Papers By : --> Via ArxivLoaderFilter
+            1. pdf_only
+            2. parsing_errors
+            3. Latex Pages 
+        2. Create Sampled Loader. --> Via ArxivLoaderFilter
+        3. Act like an Indexable Array
+        4. Get Papers using the axiv_ids. 
+
     :param papers_root_path Folder where all Arxiv Papers are Stored by the `ArxivPaper` object.
     """
     papers = []
-    def __init__(self,papers_root_path):
+    
+    def __init__(self,papers_root_path,filter_object=ArxivLoaderFilter()):
         self.papers_root_path = papers_root_path
+        self.papers = []
         list_of_subfolders_with_paths = [f.path for f in os.scandir(papers_root_path) if f.is_dir()]
         arxiv_ids = list(map(lambda x:x.split('/')[-1],list_of_subfolders_with_paths))
-        self._build_papers_from_fs(arxiv_ids)
         
-    def _build_papers_from_fs(self,arxiv_ids:List[str]):
+        self._build_papers_from_fs(arxiv_ids,filter_object)
+
+    def __getitem__(self,index):
+        return self.papers[index]
+
+    def __len__(self):
+        return len(self.papers)
+
+    def _build_papers_from_fs(self,arxiv_ids:List[str],filter_object:ArxivLoaderFilter):
+        """_build_papers_from_fs 
+        Build papers according to `ArxivLoaderFilter` filter object
+        `ArxivLoaderFilter` : 
+            - Filters Via Sampling 
+            - Filters via Latex page counts
+            - Filters via pdf_only papers 
+            - Filters via latex_errored papers
+        :param arxiv_ids: List[str] 
+        :param filter_object: ArxivLoaderFilter
+        """
+        use_filter = False
+        if filter_object.is_active:
+            use_filter = True
+        if filter_object.sample_size is not None:
+            random.shuffle(arxiv_ids) # Ids are already sufflled so samples can be created.
+            
         for paper_id in arxiv_ids:
+            if len(self.papers) == filter_object.sample_size:
+                break # post generating samples. 
             try:
                 paper = ArxivPaper.from_fs(paper_id,self.papers_root_path)
-                self.papers.append(paper)
-            except:
-                pass # Ingnore Papers which are not Parsable. 
+            except:# Ingnore Papers which are not Parsable. 
+                continue
+            if use_filter: 
+                if not self.paper_filter(paper,filter_object):
+                    continue
+            self.papers.append(paper)
+
+    @staticmethod
+    def paper_filter(paper_obj:ArxivPaper,filter_obj:ArxivLoaderFilter):
+        compiled_bool = True
+        if filter_obj.pdf_only is not None:
+            cond_result = paper_obj.paper_meta.pdf_only == filter_obj.pdf_only
+            compiled_bool = cond_result and compiled_bool
+        if filter_obj.parsing_errors is not None:
+            cond_result = paper_obj.paper_meta.parsing_error == filter_obj.parsing_errors
+            compiled_bool = cond_result and compiled_bool
+        if filter_obj.min_latex_pages is not None:
+            cond_result = paper_obj.paper_meta.latex_files >= filter_obj.min_latex_pages
+            compiled_bool =  cond_result and compiled_bool
+        if filter_obj.max_latex_pages is not None:
+            cond_result = paper_obj.paper_meta.latex_files < filter_obj.max_latex_pages
+            compiled_bool = cond_result and compiled_bool
+
+        return compiled_bool
 
     def get_meta_data_array(self):
         object_array = []
         for paper in self.papers:
-            object_array.append(paper.paper_meta)
+            object_array.append(paper.paper_meta.to_json())
         return object_array
     
     def __getitem__(self, index):
@@ -125,9 +252,15 @@ class ArxivLoader():
 
     def parsing_statistics(self):
         num_pdfs = sum([ 0 if paper.paper_meta.pdf_only else 1 for paper in self.papers])
-        latex_files_counts = sum([paper.paper_meta.latex_files for paper in self.papers])
-        num_errored = sum([1 if paper.paper_meta.parsing_error else 1 for paper in self.papers])
-        num_pdfs = sum([ 0 if paper.pdf_only else 1 for paper in self.papers])
+        latex_files_counts = dict(Counter([paper.paper_meta.latex_files for paper in self.papers]))
+        num_errored = sum([1 if paper.paper_meta.parsing_error else 0 for paper in self.papers])
+        fully_parsed = sum([ 1 if not paper.paper_meta.pdf_only and not paper.paper_meta.parsing_error else 0 for paper in self.papers])
+        return {
+            'num_pdfs':num_pdfs,
+            'latex_files_counts':latex_files_counts,
+            'num_errored':num_errored,
+            'fully_parsed':fully_parsed
+        }
 
 class ArxivFSLoadingError(Exception):
     def __init__(self,path):
@@ -251,9 +384,10 @@ class ArxivPaper(object):
         '''.format(**self.core_meta)
         return format_str
 
-    def _buid_from_fs(self):
+    def _buid_from_fs(self,meta_only = False):
         self._load_metadata_from_fs()
-        self._load_parsed_document_from_fs()
+        if not meta_only:
+            self._load_parsed_document_from_fs()
 
     def _extract_info_from_latex(self):
         self.paper_meta = ArxivPaperMeta()
@@ -278,9 +412,9 @@ class ArxivPaper(object):
             if paper_procesesing_results.parsing_error:
                 self.paper_meta.latex_parsable = False
 
-    @classmethod
-    def from_fs(cls,paper_id,root_papers_path):
-        paper = cls(paper_id,root_papers_path,build_paper=False)
+    @staticmethod
+    def from_fs(paper_id,root_papers_path):
+        paper = ArxivPaper(paper_id,root_papers_path,build_paper=False)
         if not dir_exists(paper.paper_root_path):
             raise ArxivFSLoadingError(paper.paper_root_path)
         paper._buid_from_fs()
