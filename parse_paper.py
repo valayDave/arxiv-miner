@@ -113,8 +113,7 @@ class Section():
         generated_obj = cls(name=json_object['name'])
         generated_obj.text = json_object['text']
         for val in json_object['subsections']:
-            generated_obj.subsections.append(cls(val))
-        
+            generated_obj.subsections.append(cls.from_json(val))
         return generated_obj
     
     def save_to_file(self,file_path):

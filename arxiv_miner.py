@@ -21,6 +21,7 @@ from parse_paper import \
 import datetime
 from typing import List
 from collections import Counter
+import pandas
 
 
 # from subprocess import Popen, PIPE
@@ -50,8 +51,11 @@ class ArxivDocument(Section):
     
     @classmethod
     def from_json(cls, json_object):
-        document_object = super().from_json(json_object)
-        document_object.__dict__ = { **document_object.__dict__ ,**json_object['metadata'] }
+        # print(json_object['name'])
+        object_metadata = json_object['metadata']
+        document_object = cls(name=json_object['name'],**object_metadata)
+        for subsec in json_object['subsections']:
+            document_object.subsections.append(Section.from_json(subsec))
         return document_object
 
     def to_json(self):
@@ -174,11 +178,12 @@ class ArxivLoader():
             3. Latex Pages 
         2. Create Sampled Loader. --> Via ArxivLoaderFilter
         3. Act like an Indexable Array
-        4. Get Papers using the axiv_ids. 
+        4. Get Papers using the axiv_id
 
     :param papers_root_path Folder where all Arxiv Papers are Stored by the `ArxivPaper` object.
     """
     papers = []
+    loader_archieve_file_name = 'papers_loaded.tar.gz'
     
     def __init__(self,papers_root_path,filter_object=ArxivLoaderFilter()):
         self.papers_root_path = papers_root_path
@@ -193,6 +198,12 @@ class ArxivLoader():
 
     def __len__(self):
         return len(self.papers)
+    
+    def get_sample(self):
+        return self.papers[random.randint(0,len(self.papers)-1)]
+
+    def to_metadata_dataframe(self):
+        return pandas.DataFrame(self.get_meta_data_array())
 
     def _build_papers_from_fs(self,arxiv_ids:List[str],filter_object:ArxivLoaderFilter):
         """_build_papers_from_fs 
@@ -216,7 +227,8 @@ class ArxivLoader():
                 break # post generating samples. 
             try:
                 paper = ArxivPaper.from_fs(paper_id,self.papers_root_path)
-            except:# Ingnore Papers which are not Parsable. 
+            except Exception as e:# Ingnore Papers which are not Parsable. 
+                print(e)
                 continue
             if use_filter: 
                 if not self.paper_filter(paper,filter_object):
@@ -262,6 +274,30 @@ class ArxivLoader():
             'fully_parsed':fully_parsed
         }
 
+    def from_archive(self):
+        """from_archive 
+        todo : Create a method that creates a loader from archive
+        """
+        pass
+
+    def make_archive(self,archive_path='./',with_latex=False):
+        """make_archive 
+        create a Tar file with all the papers within the loader. 
+        :param archive_path: [str], defaults to './' 
+        :param with_latex: [bool], defaults to False : if False then it doesn't archieve the Latex Folder with raw latex source. 
+        """
+        archive_path = os.path.join(archive_path,self.loader_archieve_file_name)
+        with tarfile.open(archive_path, "w:gz") as tar:
+            for paper in self.papers:
+                if with_latex:
+                    tar.add(paper.paper_root_path, arcname=os.path.basename(paper.paper_root_path))
+                else:
+                    tar.add(paper.arxiv_meta_file_path,arcname=paper.arxiv_meta_file_path)
+                    tar.add(paper.paper_meta_file_path,arcname=paper.paper_meta_file_path)
+                    if paper.latex_parsed_document is not None:
+                        tar.add(paper.tex_processing_file_path,arcname=paper.tex_processing_file_path)
+        print("Finished Creating Tar File At Path : %s"%archive_path)
+
 class ArxivFSLoadingError(Exception):
     def __init__(self,path):
         msg = "FS Path To Arxiv Mined Data Doesn't Exist %s"%path
@@ -291,10 +327,10 @@ class ArxivPaper(object):
     arxiv_object:dict
     arxiv_save_file_name='arxiv.json'
     # meta about processing results
-    paper_meta:ArxivPaperMeta
+    paper_meta:ArxivPaperMeta = None
     paper_meta_save_file_name='processing_meta.json'
     # the actual parsed object document from latex. 
-    latex_parsed_document:ArxivDocument
+    latex_parsed_document:ArxivDocument = None
     latex_parsing_result_file_name = 'latex_processing_results.json'
 
     def __init__(self,paper_id,root_papers_path,build_paper=True):
@@ -326,7 +362,7 @@ class ArxivPaper(object):
 
     def _load_metadata_from_fs(self):
         if not dir_exists(self.arxiv_meta_file_path) or not dir_exists(self.paper_meta_file_path):
-            raise ArxivMetaNotFoundException()
+            raise ArxivMetaNotFoundException(self.paper_id)
         self.arxiv_object = load_json_from_file(self.arxiv_meta_file_path)
         self.paper_meta = ArxivPaperMeta(**load_json_from_file(self.paper_meta_file_path))
         # return metadata_file
@@ -365,6 +401,10 @@ class ArxivPaper(object):
         )
 
     def __str__(self):
+        parsing_outline = None
+        if self.latex_parsed_document is not None:
+            parsing_outline = str(self.latex_parsed_document)
+        
         format_str = '''
         Properties
         ------------
@@ -381,7 +421,13 @@ class ArxivPaper(object):
         updated_on = {updated_on}
         latex_files = {latex_files}
         mined = {mined}
-        '''.format(**self.core_meta)
+        parsing_error = {parsing_error}
+
+        LATEX-PARSING
+        ----------
+
+        {parsing_outline}
+        '''.format(**self.core_meta,parsing_outline=parsing_outline)
         return format_str
 
     def _buid_from_fs(self,meta_only = False):
