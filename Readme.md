@@ -2,6 +2,12 @@
 
 Repository Helps Mine Arxiv Papers to quickly Scrape through new Papers and Mine data for Faster Readings. 
 
+## Setup
+
+```sh
+sh setup.sh
+```
+
 ## What is Done Yet : 
 
 1. Arxiv PDF and LateX Extraction Pipeline
@@ -22,7 +28,7 @@ Parse the Arxiv Latex/PDF into A research Paper Object which can be serialised s
 ### WAY TO DO IT 
 1. Extract Papers from `Arxiv` using Adjrej karapathy's `fetch_papers.py` script. It fills the `db.p` Pickle File.
 2. `arxiv_multiprocess_download.py` will download the Latex version of the Papers for Arxiv and create and `ArxivPaper` object.  
-3. The `ArxivPaper` Object created extracts the Latex source from the Arxiv. **Integration is TODO**
+3. The `ArxivPaper` Object created extracts the Latex source from the Arxiv and parses it too.
     - Three things will help solve the Information mining Problem. 
         1. Extraction of Document Structure/hierarchy via Python-Latex Libraries like `tex2py`. 
         2. Extraction of Text from Latex Document Using `detex` : https://github.com/pkubowicz/opendetex

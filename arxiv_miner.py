@@ -27,7 +27,6 @@ from typing import List
 #     (output, err) = process.communicate()
 #     exit_code = process.wait()
 #     return output
-
 class ArxivDocument(Section):
     def __init__(self, 
                 name=None,
@@ -74,7 +73,8 @@ class ArxivPaperMeta():
                 updated_on=datetime.datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)"),
                 some_section_failed=None,
                 parsing_error=False,
-                error_message=None):
+                error_message=None,
+                parsing_style=None):
 
         # Metadata about the Arxiv project.
         self.pdf_only = pdf_only
@@ -87,18 +87,11 @@ class ArxivPaperMeta():
         self.some_section_failed = some_section_failed
         self.parsing_error = parsing_error
         self.error_message = error_message
+        self.parsing_style = parsing_style
+
 
     def to_json(self):
-        return dict(
-            pdf_only =self.pdf_only,\
-            latex_files = self.latex_files,\
-            mined = self.mined,\
-            latex_parsable = self.latex_parsable,\
-            updated_on = self.updated_on,
-            some_section_failed = self.some_section_failed,
-            parsing_error = self.parsing_error,
-            error_message = self.error_message,
-        )
+        return {**self.__dict__}
 
 class ArxivLoader():
     """ArxivLoader
@@ -114,9 +107,17 @@ class ArxivLoader():
     def get_meta_data_array(self):
         object_array = []
         for paper in self.papers:
-            object_array.append(paper.core_meta)
+            object_array.append(paper.paper_meta)
         return object_array
+    
+    def __getitem__(self, index):
+          return self.papers[index]
 
+    def parsing_statistics(self):
+        num_pdfs = sum([ 0 if paper.paper_meta.pdf_only else 1 for paper in self.papers])
+        latex_files_counts = sum([paper.paper_meta.latex_files for paper in self.papers])
+        num_errored = sum([1 if paper.paper_meta.parsing_error else 1 for paper in self.papers])
+        num_pdfs = sum([ 0 if paper.pdf_only else 1 for paper in self.papers])
 
 class ArxivFSLoadingError(Exception):
     def __init__(self,path):
@@ -215,7 +216,8 @@ class ArxivPaper(object):
         format_str = '''
         Properties
         ------------
-        ID : {id}
+        ID : {id_val}
+        URL : {url}
         Title : {title}
         Published : {published}
         
@@ -250,6 +252,7 @@ class ArxivPaper(object):
         self.paper_meta.error_message = paper_procesesing_results.error_message
         self.paper_meta.some_section_failed = paper_procesesing_results.some_section_failed
         self.paper_meta.parsing_error = paper_procesesing_results.parsing_error
+        self.paper_meta.parsing_style = paper_procesesing_results.latex_parsing_method
         
         self.paper_meta.latex_parsable = True
         if paper_procesesing_results.section_list is None:
@@ -431,13 +434,15 @@ class ArxivLatexParser():
         
         # Selected Parser for Latex based On Size.            
         if paper.paper_meta.latex_files >=4:
-            selected_parser = self.multi_doc_parser.from_arxiv_paper
+            selected_parser = self.multi_doc_parser
+            # parsing_result.latex_parsing_method = 
         elif paper.paper_meta.latex_files >=1:
-            selected_parser = self.single_doc_parser.from_arxiv_paper
+            selected_parser = self.single_doc_parser
         
+        parsing_result.latex_parsing_method = selected_parser.__class__.__name__
         # Run the parser and see the results. 
         try:
-            collected_sections,some_sections_failed = selected_parser(paper,lowest_section_match_percent=lowest_section_match_percent,number_to_tries=number_to_tries)
+            collected_sections,some_sections_failed = selected_parser.from_arxiv_paper(paper,lowest_section_match_percent=lowest_section_match_percent,number_to_tries=number_to_tries)
             parsing_result.section_list = collected_sections
             parsing_result.some_section_failed = some_sections_failed
         except Exception as e:
@@ -454,18 +459,21 @@ class ArxivLatexParingResult:
                 section_list=None,\
                 some_section_failed=None,\
                 parsing_error=False,\
-                error_message=None):
+                error_message=None,\
+                latex_parsing_method=None):
         self.section_list = section_list
         self.some_section_failed = some_section_failed
         self.parsing_error = parsing_error
         self.error_message = error_message
+        self.latex_parsing_method  = latex_parsing_method
 
     def to_json(self):
         return dict(
             some_section_failed=self.some_section_failed,
             parsing_error=self.parsing_error,
             error_message=self.error_message,
-            section_list=str(0 if self.section_list is None else len(self.section_list))
+            section_list=str(0 if self.section_list is None else len(self.section_list)),
+            latex_parsing_method = self.latex_parsing_method
         )
 
     def build_document_from_paper(self,paper:ArxivPaper):
@@ -482,6 +490,7 @@ class ArxivLatexParingResult:
         parsing_error : {parsing_error}
         error_message : {error_message}
         section_list_size: {section_list}
+        latex_parsing_method : {latex_parsing_method}
         """.format(
                 **self.to_json()
             )
