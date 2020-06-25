@@ -11,8 +11,14 @@ db = pickle.load(open(Config.db_path, 'rb'))
 NUM_SUBPROCESSES = multiprocessing.cpu_count()
 
 def scrape_articles(paper_id,root_path):
-    paper = ArxivPaper(paper_id,root_path)   
-    print("Finished Paper : ",paper_id) 
+    try:
+        paper = ArxivPaper.from_fs(paper_id,root_path)   
+        print("Paper Found From FS: ",paper_id) 
+        return (paper_id)
+    except:
+        pass # This Means No paper was found
+    paper = ArxivPaper(paper_id,root_path)
+    print("Paper Built From Arxiv: ",paper_id) 
     return (paper_id)
 
 def paper_callback(paper_tuple):

@@ -99,10 +99,20 @@ class ArxivLoader():
 
     :param papers_root_path Folder where all Arxiv Papers are Stored by the `ArxivPaper` object.
     """
+    papers = []
     def __init__(self,papers_root_path):
-        list_subfolders_with_paths = [f.path for f in os.scandir(papers_root_path) if f.is_dir()]
-        arxiv_ids = list(map(lambda x:x.split('/')[-1],list_subfolders_with_paths))
-        self.papers = list(map(lambda paper_id : ArxivPaper.from_fs(paper_id,papers_root_path),arxiv_ids))
+        self.papers_root_path = papers_root_path
+        list_of_subfolders_with_paths = [f.path for f in os.scandir(papers_root_path) if f.is_dir()]
+        arxiv_ids = list(map(lambda x:x.split('/')[-1],list_of_subfolders_with_paths))
+        self._build_papers_from_fs(arxiv_ids)
+        
+    def _build_papers_from_fs(self,arxiv_ids:List[str]):
+        for paper_id in arxiv_ids:
+            try:
+                paper = ArxivPaper.from_fs(paper_id,self.papers_root_path)
+                self.papers.append(paper)
+            except:
+                pass # Ingnore Papers which are not Parsable. 
 
     def get_meta_data_array(self):
         object_array = []
@@ -123,6 +133,16 @@ class ArxivFSLoadingError(Exception):
     def __init__(self,path):
         msg = "FS Path To Arxiv Mined Data Doesn't Exist %s"%path
         super(ArxivFSLoadingError, self).__init__(msg)
+
+class ArxivMetaNotFoundException(Exception):
+    def __init__(self,paper_id):
+        msg = "Metadata About Arxiv PaperId %s Not Found on FS "%paper_id
+        super(ArxivMetaNotFoundException, self).__init__(msg)
+
+class ArxivAPIException(Exception):
+    def __init__(self,paper_id,message):
+        msg = "Exception Reaching Arxiv Arxiv PaperId %s Not Found on FS \n\n %s"%(paper_id,message)
+        super(ArxivAPIException, self).__init__(msg)
 
 class ArxivPaper(object):
     """ArxivPaper [summary]
@@ -150,11 +170,8 @@ class ArxivPaper(object):
         self.latex_root_path = os.path.join(self.paper_root_path,'latex')
         self.latex_processor = ArxivLatexParser()
         self.paper_id = paper_id
-
         if build_paper:
-            if not dir_exists(self.paper_root_path):
-                os.makedirs(self.paper_root_path)
-                self._build_paper()
+            self._build_paper()
         # scan for the presence of the object in the FS.
 
     @property
@@ -175,6 +192,8 @@ class ArxivPaper(object):
         return os.path.join(self.paper_root_path,self.latex_parsing_result_file_name)
 
     def _load_metadata_from_fs(self):
+        if not dir_exists(self.arxiv_meta_file_path) or not dir_exists(self.paper_meta_file_path):
+            raise ArxivMetaNotFoundException()
         self.arxiv_object = load_json_from_file(self.arxiv_meta_file_path)
         self.paper_meta = ArxivPaperMeta(**load_json_from_file(self.paper_meta_file_path))
         # return metadata_file
@@ -273,16 +292,21 @@ class ArxivPaper(object):
         Download's The Tex Version of the Paper and saves it to folder. 
         Also saves Metadata From Arxiv And Metadata About Tex Value of the paper.
         """
-        # $ Query Paper
-        paper = arxiv.query(id_list=[self.paper_id])[0]
-        # $ Set the Arxiv Object to ensure Proper extraction
-        self.arxiv_object = paper
-        # $ Download the paper. 
-        downloaded_data = arxiv.download(paper,dirpath=self.paper_root_path,slugify=lambda paper: paper.get('id').split('/')[-1],prefer_source_tarfile=True)
+        try:
+            # $ Query Paper
+            paper = arxiv.query(id_list=[self.paper_id])[0]
+            # $ Set the Arxiv Object to ensure Proper extraction
+            self.arxiv_object = paper  
+            if not dir_exists(self.paper_root_path):
+                os.makedirs(self.paper_root_path)
+            # $ Download the paper. 
+            downloaded_data = arxiv.download(paper,dirpath=self.paper_root_path,slugify=lambda paper: paper.get('id').split('/')[-1],prefer_source_tarfile=True)
+        except Exception as e:
+            raise ArxivAPIException(self.paper_id,str(e))
         # $ Extract Files in Folder.
         with tarfile.open(downloaded_data) as tar:
             tar.extractall(path=self.latex_root_path)
-        
+
         # $ Remove the Tar File.
         os.remove(downloaded_data)
         # $ Save the Metadata
