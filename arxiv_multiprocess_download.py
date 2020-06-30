@@ -5,19 +5,22 @@ from arxiv_miner import ArxivPaper
 import click
 import sys
 import traceback
-
+import os
+DETEX_PATH = os.path.abspath('./detex')
 
 db = pickle.load(open(Config.db_path, 'rb'))
 NUM_SUBPROCESSES = multiprocessing.cpu_count()
 
 def scrape_articles(paper_id,root_path):
     try:
-        paper = ArxivPaper.from_fs(paper_id,root_path)   
+        root_path = os.path.abspath(root_path)
+        print("Scraping Article : ",paper_id)
+        paper = ArxivPaper.from_fs(paper_id,root_path,detex_path=DETEX_PATH)
         print("Paper Found From FS: ",paper_id) 
         return (paper_id)
     except:
         pass # This Means No paper was found
-    paper = ArxivPaper(paper_id,root_path)
+    paper = ArxivPaper(paper_id,root_path,detex_path=DETEX_PATH)
     print("Paper Built From Arxiv: ",paper_id) 
     return (paper_id)
 

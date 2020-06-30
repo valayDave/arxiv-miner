@@ -1,9 +1,22 @@
+# For Arxiv Scraping
 arxiv
+arxivscraper
+
+# For Arxiv Processing
 tex2py
+
+# Utils
 matplotlib
 pandas
 click
-# feedparser is only if you want to scrape arxiv
+# feedparser is only if you want to scrape arxiv with Andrej's script: Remove Later once move to personal solution
 feedparser
 numpy
 scipy
+
+#date parsing
+dateparser 
+
+# This is For Arxiv Mining
+expiringdict
+rpyc

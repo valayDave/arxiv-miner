@@ -25,29 +25,20 @@ def save_json_to_file(json_dict,file_path):
 # global settings
 # -----------------------------------------------------------------------------
 class Config(object):
-    # main paper information repo file
-    db_path = 'db.p'
-    # intermediate processing folders
-    pdf_dir = os.path.join('data', 'pdf')
-    txt_dir = os.path.join('data', 'txt')
-    thumbs_dir = os.path.join('static', 'thumbs')
-    latex_dir = os.path.join('data','latex')
+    # Database Related Configuration
+    data_path = os.path.abspath('./data')
+    database_port = 18861
+    database_host = 'localhost'
+    database_config = {
+        'allow_public_attrs': True,\
+        'sync_request_timeout': 10\
+    }
+    
+    # Mining Related Configuration
+    detex_path = os.path.abspath('./detex')
+    mining_data_path = os.path.abspath('./mining_data/papers')
 
-    # $ This is from new project Rest from andrej's proj.
-    root_papers_path = os.path.join('data','papers')
-    # intermediate pickles
-    tfidf_path = 'tfidf.p'
-    meta_path = 'tfidf_meta.p'
-    sim_path = 'sim_dict.p'
-    user_sim_path = 'user_sim.p'
-    
-    # sql database file
-    db_serve_path = 'db2.p' # an enriched db.p with various preprocessing info
-    database_path = 'as.db'
-    serve_cache_path = 'serve_cache.p'
-    
-    banned_path = 'banned.txt' # for twitter users who are banned
-    tmp_dir = 'tmp'
+
 
 # Context managers for atomic writes courtesy of
 # http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
