@@ -4,6 +4,8 @@ import os
 from utils import Config
 import datetime
 import click
+from signal import signal,SIGINT
+
 
 DEFAULT_PATH = Config.data_path
 DEFAULT_PORT = Config.database_port
@@ -23,13 +25,22 @@ This will start an FS oriented Database for the ArxivRecords and uses
 def start_server(data_path,\
                 port = DEFAULT_PORT,
                 host = DEFAULT_HOST):
+    db_service = ArxivDatabaseService(data_path)
+
+    def stop_server(signal_received, frame):
+        db_service.shutdown()
+        t.close()
+
+    signal(SIGINT, stop_server)
     t = ThreadedServer(\
-        ArxivDatabaseService(data_path),\
+        db_service,\
         port=port,\
         hostname=host,\
         protocol_config=Config.database_config)
     t.start()
 
 
+
+   
 if __name__ == "__main__":
     start_server()

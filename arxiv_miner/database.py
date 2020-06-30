@@ -1,5 +1,6 @@
 import os
 import rpyc
+from signal import signal,SIGINT
 from .record import ArxivRecord,ArxivIdentity,ArxivPaperStatus
 from .utils import dir_exists,save_json_to_file,load_json_from_file
 from .paper import ArxivPaper
@@ -13,7 +14,7 @@ class ArxivDatabase:
     underlying Database client implementations. 
     """
     
-    def query(self,paper_id):
+    def query(self,paper_id) -> ArxivRecord:
         """query [summary]
         Query Database for a paper_id. Return None is doesn't Exist. 
         :type paper_id: [str]
@@ -26,19 +27,19 @@ class ArxivDatabase:
         """
         raise NotImplementedError()
 
-    def get_unmined_paper(self):
+    def get_unmined_paper(self) -> ArxivRecord:
         """get_unmined_data 
         Extract one Unmined Paper from the collection of papers. 
         """
         raise NotImplementedError()
 
-    def set_mined(self,identity:ArxivIdentity,mined_status:bool):
+    def set_mined(self,identity:ArxivIdentity,mined_status:bool) -> None:
         """mark_mined 
         Set ArxivIdentity as Mined 
         """
         raise NotImplementedError()
 
-    def save_record(self,record:ArxivRecord):
+    def save_record(self,record:ArxivRecord) -> None:
         """save_record 
         Save ArxivRecord which could be mined/unmined to database.
         """
@@ -52,6 +53,7 @@ class PaperMap:
     This Datastructure is responsible for Storing the Metadata
     About the Scraping/Mining For the FS Database. 
 
+    `ArxivDatabase` is an adapter class so that one can Quickly switch from an FS based database to 
     """
     filename = 'paper_map.json'
     paper_map = {}
@@ -61,13 +63,19 @@ class PaperMap:
         self.papers_path = os.path.join(data_root_path,'papers')
         self.root_path = os.path.join(data_root_path,'map')
         self._init_paper_map()
+    
+    def save_map(self):
+        if not dir_exists(self.root_path):
+            os.makedirs(self.root_path)
+        save_json_to_file(self.to_json(),os.path.join(self.root_path,self.filename))
 
     def _init_paper_map(self):
         """_init_paper_map 
         Load Map from a Directory Or Build one from The papers Path
         """
-        if dir_exists(self.root_path):
-            json_map = load_json_from_file(os.path.join(self.root_path,self.filename))
+        map_path = os.path.join(self.root_path,self.filename)
+        if dir_exists(map_path):
+            json_map = load_json_from_file(map_path)
             self.paper_map,self.unmined_set = self._from_json(json_map)
             return 
         # if PaperMap Json Doesn't Exist on Path and There Are a few Folders on the Papers path then
@@ -94,7 +102,6 @@ class PaperMap:
                 if not mined:
                     self.unmined_set.add(paper_id)
             except Exception as e:
-                raise e
                 continue
 
     def _from_json(self,json_object):
@@ -106,20 +113,23 @@ class PaperMap:
 
         return json_object,unmined_set
 
+    def __len__(self):
+        return len(self.paper_map.keys())
+
     def __getitem__(self,paper_id):
         if paper_id not in self.paper_map:
             return None
         return self.paper_map[paper_id]
 
     def to_json(self):
-        return dict((paper_id,self.paper[paper_id].to_json()) for paper_id in self.paper_map)
+        return dict((paper_id,self.paper_map[paper_id].to_json()) for paper_id in self.paper_map)
 
     def add(self,paper_id):
         if paper_id not in self.paper_map:
             self.paper_map[paper_id] = ArxivPaperStatus(scraped=True) # Create When An Identity is Scraped.
             self.unmined_set.add(paper_id)
 
-    def get_unmined_paper(self):
+    def get_unmined_paper(self) -> str:
         if len(self.unmined_set) == 0:
             return None        
         return self.unmined_set.pop()
@@ -146,7 +156,7 @@ class ArxivFSDatabase(ArxivDatabase):
         self.papers_path = paper_path
         self.paper_map = PaperMap(data_root_path)
         self.logger = create_logger(self.__class__.__name__)
-        self.logger.info("Database Has Started")
+        self.logger.info("Database Has Started Currently With Papers : %d"%len(self.paper_map))
 
     
     def query(self, paper_id) -> ArxivRecord:
@@ -162,8 +172,8 @@ class ArxivFSDatabase(ArxivDatabase):
     def save_identity(self,identity:ArxivIdentity):
         paper_path = os.path.join(self.papers_path,identity.identity)
         paper_meta_path = os.path.join(paper_path,ArxivRecord.identity_file_name)
-        # Update The Map
-        if self.paper_map[identity.identity] is not None:
+        # Update The Map if there is no Identity in the Map. 
+        if self.paper_map[identity.identity] is None:
             self.paper_map.add(identity.identity) # Add paper to the map(It also sets scraped=True)
         # Save paper identity. 
         if not dir_exists(paper_path):
@@ -194,13 +204,17 @@ class ArxivDatabaseService(rpyc.Service,ArxivFSDatabase):
     def on_connect(self, conn):
         # code that runs when a connection is created
         # (to init the service, if needed)
-        print("New Connection To Database")
+        self.logger.info("[CONN OPEN]: DB Currently Has %d Papers "%len(self.paper_map))
         pass
+    
+    def shutdown(self):
+        self.paper_map.save_map()
+        self.logger.info("Shutting Down The Server. Total Papers Records(Mined/Scraped) %d"%len(self.paper_map))
 
     def on_disconnect(self, conn):
         # code that runs after the connection has already closed
         # (to finalize the service, if needed)
-        print("Conn Closed To Database",conn)
+        self.logger.info("[CONN CLOSE]: DB Currently Has %d Papers "%len(self.paper_map))
         pass
 
     def exposed_query(self,paper_id): # this is an exposed method

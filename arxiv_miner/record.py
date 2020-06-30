@@ -219,12 +219,13 @@ class ArxivPaperStatus:
     def __init__(self,
                 mined = False,
                 created_on = datetime.datetime.now().strftime(DATE_FORMAT),
-                scraped = False
+                scraped = False,
+                updated_on = None
                 ):
         self.mined = mined
         self.scraped = scraped
         self.created_on = created_on
-        self.updated_on = None
+        self.updated_on = updated_on
     
     def to_json(self):
         return {**self.__dict__}
