@@ -148,7 +148,7 @@ class ArxivLoader():
             if len(self.papers) == filter_object.sample_size:
                 break # post generating samples. 
             try:
-                paper = ArxivPaper.from_fs(paper_id,self.papers_root_path,detex_path=detex_path)
+                paper = ArxivPaper.from_fs(paper_id,self.papers_root_path)
             except Exception as e:# Ingnore Papers which are not Parsable. 
                 print(e)
                 continue
@@ -197,8 +197,8 @@ class ArxivLoader():
 
     def get_meta_data_array(self):
         object_array = []
-        for paper in self.papers:
-            object_array.append(paper.core_meta)
+        for paper in self.papers:# Use Identiy For any place needing Metadata. 
+            object_array.append(paper.identity.to_json())
         return object_array
     
     def __getitem__(self, index):

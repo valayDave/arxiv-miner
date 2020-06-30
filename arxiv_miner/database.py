@@ -59,20 +59,24 @@ class PaperMap:
     paper_map = {}
     unmined_set = set()
 
-    def __init__(self,data_root_path):
+    def __init__(self,data_root_path,build_new=False):
         self.papers_path = os.path.join(data_root_path,'papers')
         self.root_path = os.path.join(data_root_path,'map')
-        self._init_paper_map()
+        self._init_paper_map(build_new=build_new)
     
     def save_map(self):
         if not dir_exists(self.root_path):
             os.makedirs(self.root_path)
         save_json_to_file(self.to_json(),os.path.join(self.root_path,self.filename))
 
-    def _init_paper_map(self):
+    def _init_paper_map(self,build_new=False):
         """_init_paper_map 
         Load Map from a Directory Or Build one from The papers Path
+        :param build_new [bool] : if True, Will initiate Proceess of Building from FS with paper_path Else it will use the map/paper_map.json
         """
+        if build_new:
+            self._load_map_from_fs()
+            return 
         map_path = os.path.join(self.root_path,self.filename)
         if dir_exists(map_path):
             json_map = load_json_from_file(map_path)
@@ -149,12 +153,12 @@ class ArxivFSDatabase(ArxivDatabase):
     
     This Database Can Later GeT replaced with a more formal search Engine. 
     """
-    def __init__(self,data_root_path):
+    def __init__(self,data_root_path,build_new_map=False):
         paper_path = os.path.join(data_root_path,'papers')
         if not dir_exists(paper_path):
             os.makedirs(paper_path) 
         self.papers_path = paper_path
-        self.paper_map = PaperMap(data_root_path)
+        self.paper_map = PaperMap(data_root_path,build_new=build_new_map)
         self.logger = create_logger(self.__class__.__name__)
         self.logger.info("Database Has Started Currently With Papers : %d"%len(self.paper_map))
 

@@ -9,7 +9,8 @@ from .loader import \
 from .record import \
     ArxivIdentity,\
     ArxivLatexParsingResult,\
-    ArxivPaperProcessingMeta
+    ArxivPaperProcessingMeta,\
+    ArxivRecord
 
 from .database import \
         ArxivDatabaseService,\

@@ -60,3 +60,7 @@ class DetexBinaryAbsent(LatexParserException):
         msg = "Exception Raised Because Of No Detex Binary"
         super(DetexBinaryAbsent, self).__init__(msg)
 
+class CorruptArxivRecordException(Exception):
+     def __init__(self):
+        msg = "ArxivRecord Is Corrupt And Cannot Load From Dict"
+        super(CorruptArxivRecordException, self).__init__(msg)

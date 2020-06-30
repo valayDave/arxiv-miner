@@ -49,8 +49,7 @@ def start_miner(mining_data_path,\
                             detex_path,\
                             mining_interval = mining_interval,\
                             mining_limit = mining_limit,\
-                            empty_wait_time = empty_wait_time
-                            )
+                            empty_wait_time = empty_wait_time)
     process.start()
     process.join()
 

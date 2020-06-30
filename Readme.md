@@ -72,3 +72,8 @@ Parse the Arxiv Latex/PDF into A research Paper Object which can be serialised s
     ```sh
     python mine_papers.py --help
     ```
+
+# TODO / VISION
+
+- Currently Papers are downloaded,parsed and stored to files. 
+    - This is fast for currently building a strong core datastructure and fast development, But the Data needs to transition to a Search Engine for faster retrieval.

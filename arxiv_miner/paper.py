@@ -61,11 +61,12 @@ class ArxivPaper(ArxivRecord):
     ############ Fast Access Properties for the Processing Object ############
     @property
     def core_meta(self):
-        return {
-            **self.identity_meta,
-            **self.paper_processing_meta.to_json(),
-            'parsing_error':self.latex_parsing_result.parsing_error
-        }
+        final_dict = dict(**self.identity_meta)
+        if self.paper_processing_meta:
+            final_dict = {**final_dict,**self.paper_processing_meta.to_json()}
+        if self.latex_parsing_result:
+            final_dict['parsing_error'] = self.latex_parsing_result.parsing_error
+        return core_meta
     
     @property
     def identity_meta(self):
@@ -118,9 +119,8 @@ class ArxivPaper(ArxivRecord):
 
     def __str__(self):
         parsing_outline = None
-        if self.latex_parsed_document is not None:
-            parsing_outline = str(self.latex_parsed_document)
-        
+        proc_meta_str = None
+        latex_meta_str = None
         format_str = '''
         Properties
         ------------
@@ -128,22 +128,26 @@ class ArxivPaper(ArxivRecord):
         URL : {url}
         Title : {title}
         Published : {published}
-        
+        '''.format(**self.identity_meta)
 
-        MetaData
-        ---------
-        pdf_only = {pdf_only}
-        latex_parsed = {latex_parsed}
-        updated_on = {updated_on}
-        latex_files = {latex_files}
-        mined = {mined}
-        parsing_error = {parsing_error}
+        if self.paper_processing_meta is not None:
+            proc_meta_str = str(self.paper_processing_meta)
+            format_str = format_str+'\n'+proc_meta_str
 
-        LATEX-PARSING
-        ----------
+        if self.latex_parsing_result is not None:
+            latex_meta_str = str(self.latex_parsing_result)
+            format_str = format_str+'\n'+latex_meta_str
 
-        {parsing_outline}
-        '''.format(**self.core_meta,parsing_outline=parsing_outline)
+        if self.latex_parsed_document is not None:
+            parsing_outline = str(self.latex_parsed_document)
+            latex_parsing_str = '''
+            LATEX-PARSING
+            ----------
+
+            {parsing_outline}
+            '''.format(parsing_outline=parsing_outline)
+            format_str = format_str+'\n'+latex_parsing_str
+
         return format_str
 
     def _buid_from_fs(self,meta_only = False):
@@ -258,6 +262,10 @@ class ArxivPaper(ArxivRecord):
         )
         return record
     
+    @classmethod
+    def from_json(cls,root_papers_path,json_object,detex_path=None):
+        record = ArxivRecord.from_json(json_object)
+        return cls.from_arxiv_record(root_papers_path,record,detex_path=detex_path)
     ############  ############ ############ ######################## ############ ############
     
     @staticmethod

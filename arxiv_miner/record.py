@@ -7,7 +7,7 @@ import datetime
 from arxivscraper import Record
 from .symantic_parsing import ArxivDocument
 from .utils import load_json_from_file,dir_exists
-from .exception import ArxivIdentityNotFoundException
+from .exception import ArxivIdentityNotFoundException,CorruptArxivRecordException
 
 DATE_FORMAT = '%d-%b-%Y (%H:%M:%S.%f)'
 class ArxivLatexParsingResult:
@@ -41,7 +41,6 @@ class ArxivLatexParsingResult:
         some_section_failed : {some_section_failed}
         parsing_error : {parsing_error}
         error_message : {error_message}
-        section_list_size: {section_list}
         latex_parsing_method : {latex_parsing_method}
         """.format(
                 **self.to_json()
@@ -155,7 +154,7 @@ class ArxivPaperProcessingMeta():
                  pdf_only=False,\
                  latex_files=0,\
                  mined = True,\
-                latex_parsed=True,\
+                 latex_parsed=True,\
                  updated_on=datetime.datetime.now().strftime(DATE_FORMAT),
                  ):
 
@@ -169,6 +168,17 @@ class ArxivPaperProcessingMeta():
         
         # True if mined==True and section_list > len 0  else false. 
         self.latex_parsed = latex_parsed
+
+    def __str__(self):
+        return '''
+        Processing MetaData
+        -------------------
+        pdf_only = {pdf_only}
+        latex_parsed = {latex_parsed}
+        updated_on = {updated_on}
+        latex_files = {latex_files}
+        mined = {mined}
+        '''.format(**self.to_json())
         
     def to_json(self):
         return {**self.__dict__}
@@ -208,6 +218,38 @@ class ArxivRecord(object):
         self.latex_parsing_result = latex_parsing_result
 
 
+    def to_json(self):
+        data_dict = {
+            'identity' :self.identity.to_json(),
+            'paper_processing_meta' : None if self.paper_processing_meta is None else self.paper_processing_meta.to_json(),
+            'latex_parsing_result' : None if self.latex_parsing_result is None else self.latex_parsing_result.to_json(),
+            'latex_parsed_document' : None if self.latex_parsed_document is None else self.latex_parsed_document.to_json()
+        }
+        return data_dict
+    
+    @classmethod
+    def from_json(cls,json_object):
+        identity = None
+        paper_processing_meta = None
+        latex_parsing_result = None
+        latex_parsed_document = None
+        if 'identity' not in json_object:
+            raise CorruptArxivRecordException()
+        
+        identity = ArxivIdentity(**json_object['identity'])
+        if 'paper_processing_meta' in json_object:
+            paper_processing_meta = ArxivPaperProcessingMeta(**json_object['paper_processing_meta'])
+        if 'latex_parsing_result' in json_object:
+            latex_parsing_result = ArxivLatexParsingResult(**json_object['latex_parsing_result'])
+        if 'latex_parsed_document' in json_object:
+            latex_parsed_document = ArxivDocument.from_json(json_object['latex_parsed_document'])
+        
+        return cls(
+            identity = identity,
+            paper_processing_meta = paper_processing_meta,
+            latex_parsing_result = latex_parsing_result,
+            latex_parsed_document = latex_parsed_document
+        )
 
 class ArxivPaperStatus:
     """ 

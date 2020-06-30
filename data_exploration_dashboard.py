@@ -14,24 +14,24 @@ MAX_ARTICLES_PER_PAGE = 20
 APP_MODES = [
     "Database Exploration",
     # "Instant URL Parsing", 
-    "Dataset Exploration",
+    # "Dataset Exploration",
     "Source Code Lookup",
     "Arxiv Query Builder"
 ]
-LOADER_FACTORY =  FSArxivLoadingFactory(detex_path=DETEX_PATH)
+LOADER_FACTORY =  FSArxivLoadingFactory
 
 @st.cache(show_spinner=True,hash_funcs={ArxivLoader: id})
 def get_paper_data(latex_papers = False):
-    storage_path = Config.root_papers_path
+    storage_path = os.path.join(Config.data_path,'papers')
     if not latex_papers :
-        loader = ArxivLoader(storage_path,detex_path=DETEX_PATH)
+        loader = ArxivLoader(storage_path)
     else:
         loader = LOADER_FACTORY.latex_parsed_loader(storage_path)
     return loader
 
 @st.cache(show_spinner=True,hash_funcs={arxiv_query.ArxivLocalDatabase: id})
 def get_local_paper_database():
-    local_db = arxiv_query.ArxivLocalDatabase(Config.db_path)
+    local_db = arxiv_query.ArxivLocalDatabase('./db.p')
     return local_db
 
 
@@ -43,7 +43,7 @@ def dataset_exploration():
     ltx_papers = st.checkbox('Show Latex Parsed Papers')
     loader = get_paper_data(latex_papers=ltx_papers)
     ids = list(range(len(loader)))
-    id_value = st.selectbox("Select A Paper", ids, format_func=lambda x: loader[x].core_meta['title'])
+    id_value = st.selectbox("Select A Paper", ids, format_func=lambda x: loader[x].identity_meta['title'])
     paper = loader[id_value]
 
     if paper.latex_parsed_document is None:
