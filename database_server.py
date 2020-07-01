@@ -1,15 +1,15 @@
-from arxiv_miner import ArxivDatabaseService
+from arxiv_miner import ArxivFSDatabaseService as ArxivDatabaseService
 from rpyc.utils.server import ThreadedServer
 import os
-from utils import Config
+from config import Config
 import datetime
 import click
 from signal import signal,SIGINT
 
 
 DEFAULT_PATH = Config.data_path
-DEFAULT_PORT = Config.database_port
-DEFAULT_HOST = Config.database_host
+DEFAULT_PORT = Config.fs_database_port
+DEFAULT_HOST = Config.fs_database_host
 
 DATABASE_HELP = '''
 ArXiv Database
@@ -36,10 +36,8 @@ def start_server(data_path,\
         db_service,\
         port=port,\
         hostname=host,\
-        protocol_config=Config.database_config)
+        protocol_config=Config.fs_database_config)
     t.start()
-
-
 
    
 if __name__ == "__main__":

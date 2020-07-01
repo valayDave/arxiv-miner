@@ -460,7 +460,7 @@ class ArxivLatexParser():
             collected_sections,some_sections_failed,file_results = selected_parser.from_arxiv_paper(paper,lowest_section_match_percent=lowest_section_match_percent,number_to_tries=number_to_tries)
             parsing_result.section_list = collected_sections
             parsing_result.some_section_failed = some_sections_failed
-            parsing_result.file_results = file_results
+            parsing_result.file_results = [{'name':k,'status':file_results[k]} for k in file_results]
         except Exception as e:
             parsing_result.error_message = str(e)
             parsing_result.parsing_error = True

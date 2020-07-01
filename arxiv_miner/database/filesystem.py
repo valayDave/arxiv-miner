@@ -1,52 +1,13 @@
+"""
+This Module is responsible for Working as a Generalised FS based Database for Scraping/Mining etc. 
+This uses the `ArxivDatabase` Adapter to create an FS driven DB. 
+"""
 import os
-import rpyc
-from signal import signal,SIGINT
-from .record import ArxivRecord,ArxivIdentity,ArxivPaperStatus
-from .utils import dir_exists,save_json_to_file,load_json_from_file
-from .paper import ArxivPaper
-from .logger import create_logger
-from .exception import ArxivIdentityNotFoundException,ArxivFSLoadingError,ArxivDatabaseConnectionException
-
-# The Database Should be a standalone process. 
-class ArxivDatabase:
-    """ 
-    Parent Class Responsible for acting as a hook for getting 
-    underlying Database client implementations. 
-    """
-    
-    def query(self,paper_id) -> ArxivRecord:
-        """query [summary]
-        Query Database for a paper_id. Return None is doesn't Exist. 
-        :type paper_id: [str]
-        """
-        raise NotImplementedError()
-
-    def save_identity(self,identity:ArxivIdentity):
-        """save [summary]
-        Save the identity to Database. One Can Overwrite the Values. 
-        """
-        raise NotImplementedError()
-
-    def get_unmined_paper(self) -> ArxivRecord:
-        """get_unmined_data 
-        Extract one Unmined Paper from the collection of papers. 
-        """
-        raise NotImplementedError()
-
-    def set_mined(self,identity:ArxivIdentity,mined_status:bool) -> None:
-        """mark_mined 
-        Set ArxivIdentity as Mined 
-        """
-        raise NotImplementedError()
-
-    def save_record(self,record:ArxivRecord) -> None:
-        """save_record 
-        Save ArxivRecord which could be mined/unmined to database.
-        """
-        raise NotImplementedError()
-
-    def pipeline_stats(self):
-        raise NotImplementedError()
+from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus
+from ..utils import dir_exists,save_json_to_file,load_json_from_file
+from ..paper import ArxivPaper
+from ..logger import create_logger
+from .core import ArxivDatabase
 
 class PaperMap:
     """
@@ -199,66 +160,3 @@ class ArxivFSDatabase(ArxivDatabase):
             return None
         return self.query(paper_id)
         
-
-class ArxivDatabaseService(rpyc.Service,ArxivFSDatabase):
-    
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
-
-    def on_connect(self, conn):
-        # code that runs when a connection is created
-        # (to init the service, if needed)
-        self.logger.info("[CONN OPEN]: DB Currently Has %d Papers "%len(self.paper_map))
-        pass
-    
-    def shutdown(self):
-        self.paper_map.save_map()
-        self.logger.info("Shutting Down The Server. Total Papers Records(Mined/Scraped) %d"%len(self.paper_map))
-
-    def on_disconnect(self, conn):
-        # code that runs after the connection has already closed
-        # (to finalize the service, if needed)
-        self.logger.info("[CONN CLOSE]: DB Currently Has %d Papers "%len(self.paper_map))
-        pass
-
-    def exposed_query(self,paper_id): # this is an exposed method
-        return self.query(paper_id)
-
-    def exposed_save_identity(self,identity:ArxivIdentity):  # while this method is not exposed
-        return self.save_identity(identity)
- 
-    def exposed_get_unmined_paper(self):
-        return self.get_unmined_paper()
-
-    def exposed_set_mined(self,identity:ArxivIdentity,mined_status:bool):
-        return self.set_mined(identity,mined_status)
-
-    def exposed_save_record(self,record:ArxivRecord):
-        return self.save_record(record)
-
-    
-
-class ArxivDatabaseServiceClient(ArxivDatabase):
-    
-    def __init__(self,host='localhost',port=18861):
-        try:
-            self.conn = rpyc.connect(host, port,config={'allow_public_attrs': True, 'sync_request_timeout': 10})
-            self.client = self.conn.root
-        except Exception as e:
-            raise ArxivDatabaseConnectionException(host,port,str(e))
-        
-    
-    def query(self,paper_id):
-       return self.client.query(paper_id)
-
-    def save_identity(self,identity:ArxivIdentity):
-       return self.client.save_identity(identity)
-
-    def get_unmined_paper(self):
-        return self.client.get_unmined_paper()
-
-    def set_mined(self,identity:ArxivIdentity,mined_status:bool):
-        return self.client.set_mined(identity,mined_status)
-
-    def save_record(self,record:ArxivRecord):
-        return self.client.save_record(record)

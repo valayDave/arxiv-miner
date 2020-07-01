@@ -6,7 +6,6 @@ The Mining Engine Uses the Database To extract
 Information from Arxiv LateX papers
 """
 
-from arxivscraper import Scraper
 import datetime
 import time
 from multiprocessing import Process,Event
@@ -15,6 +14,7 @@ from signal import signal, SIGINT
 from .record import ArxivIdentity
 from .database import ArxivDatabase
 from .logger import create_logger
+from .scraper import Scraper
 '''
 How Will Scraping Take Place. ? 
     1. Once Running With a Configuration Of what Subject area to Scrape. 

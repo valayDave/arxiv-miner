@@ -20,3 +20,5 @@ dateparser
 # This is For Arxiv Mining
 expiringdict
 rpyc
+elasticsearch
+elasticsearch_dsl

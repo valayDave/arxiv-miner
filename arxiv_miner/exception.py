@@ -30,12 +30,6 @@ class ArxivAPIException(Exception):
         msg = "Exception Reaching Arxiv API. PaperId %s Not Found on FS \n\n %s"%(paper_id,message)
         super(ArxivAPIException, self).__init__(msg)
 
-class ArxivDatabaseConnectionException(Exception):
-     def __init__(self,host,port,error_message):
-        msg = "Exception Connecting To ArxivDatabase on %s : %d \n\n %s"%(host,port,error_message)
-        super(ArxivAPIException, self).__init__(msg)
-
-
 class SectionSerialisationException(LatexParserException):
      def __init__(self,ms):
         msg = "Serialisation of Section Object Requeses %s"%ms
@@ -64,3 +58,34 @@ class CorruptArxivRecordException(Exception):
      def __init__(self):
         msg = "ArxivRecord Is Corrupt And Cannot Load From Dict"
         super(CorruptArxivRecordException, self).__init__(msg)
+
+# DB RELATED EXCEPTIONS
+class ArxivDatabaseConnectionException(Exception):
+     def __init__(self,host,port,error_message):
+        msg = "Exception Connecting To ArxivDatabase on %s : %d \n\n %s"%(host,port,error_message)
+        super(ArxivDatabaseConnectionException, self).__init__(msg)
+
+class DepsMissingException(Exception):
+    """DepsMissingException 
+    Used to With Soft deps so that install instructions can be cleanly printed 
+    """
+    headline = "[DEPENDENCY_MISSING_EXCEPTION]"
+    def __init__(self,message,missing_deps=[],install_mode='pip install'):
+        # msg = "Exception Connecting To ArxivDatabase on %s : %d \n\n %s"%(host,port,error_message)
+        install_instructions = [ install_mode+' '+d for d in missing_deps]
+        install_str = "\n Please perform To Install Dependencies: \n %s"%'\n\t'.join(install_instructions)
+        msg = message + install_str
+        super(DepsMissingException, self).__init__(msg)
+
+
+class ElasticsearchMissingException(DepsMissingException):
+    
+     def __init__(self):
+        es_deps = ['elasticsearch','elasticsearch_dsl']
+        msg = "Elasticsearch Dependencies Not Installed in Python"
+        super(ElasticsearchMissingException, self).__init__(msg,missing_deps=es_deps)
+
+class ElasticsearchIndexMissingException(Exception):
+    def __init__(self):
+        msg = 'Index To Elasticsearch Cannot Be None'
+        super(ElasticsearchIndexMissingException, self).__init__(msg)

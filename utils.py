@@ -22,24 +22,6 @@ def save_json_to_file(json_dict,file_path):
     with open(file_path,'w') as f:
         json.dump(json_dict,f)
 
-# global settings
-# -----------------------------------------------------------------------------
-class Config(object):
-    # Database Related Configuration
-    data_path = os.path.abspath('./data')
-    database_port = 18861
-    database_host = 'localhost'
-    database_config = {
-        'allow_public_attrs': True,\
-        'sync_request_timeout': 10\
-    }
-    
-    # Mining Related Configuration
-    detex_path = os.path.abspath('./detex')
-    mining_data_path = os.path.abspath('./mining_data/papers')
-
-
-
 # Context managers for atomic writes courtesy of
 # http://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
 @contextmanager

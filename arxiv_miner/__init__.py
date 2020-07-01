@@ -10,12 +10,15 @@ from .record import \
     ArxivIdentity,\
     ArxivLatexParsingResult,\
     ArxivPaperProcessingMeta,\
-    ArxivRecord
+    ArxivRecord,\
+    ArxivPaperStatus
 
 from .database import \
-        ArxivDatabaseService,\
-        ArxivDatabaseServiceClient
-    
+        ArxivFSDatabaseService,\
+        ArxivDatabaseServiceClient,\
+        ArxivElasticSeachDatabaseClient,\
+        get_database_client,\
+        SUPPORTED_DBS
 
 from .scraping_engine import \
         DailyScrapingEngine,\

@@ -53,6 +53,7 @@ class MiningEngine:
         if not paper_record: 
             return None,paper_mined
         
+        self.logger.info("Mining Paper %s"%paper_record.identity.identity)
         paper_obj = self.mine_record(paper_record)
         if paper_obj is not None:
             paper_mined = True
@@ -94,7 +95,7 @@ class MiningProcess(Process,MiningEngine):
         # Handle any cleanup here
         self.logger.info('SIGINT or CTRL-C detected. Exiting gracefully')
         self.exit.set()
-        # exit(0)
+        exit(0)
 
     def start_mining(self):
         while True:

@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import Config 
+from config import Config 
 from arxiv_miner import FSArxivLoadingFactory,ArxivLoader 
 import pickle 
 import pandas

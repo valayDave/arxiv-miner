@@ -4,21 +4,23 @@ All the datastructures are used by Procssing Objects during the processing/resul
 pipeline. 
 """
 import datetime
-from arxivscraper import Record
+import dateparser
+from .scraper import Record
 from .symantic_parsing import ArxivDocument
 from .utils import load_json_from_file,dir_exists
 from .exception import ArxivIdentityNotFoundException,CorruptArxivRecordException
 
-DATE_FORMAT = '%d-%b-%Y (%H:%M:%S.%f)'
+# ISO Records Should be a Date Standard For all Record Docs. 
 class ArxivLatexParsingResult:
-
+    # Dict can create indexing issues. with file_results
     def __init__(self,\
                 section_list=None,\
                 some_section_failed=None,\
-                file_results={},\
+                file_results=[],\
                 parsing_error=False,\
                 error_message=None,\
                 latex_parsing_method=None):
+                
         self.section_list = section_list
         self.some_section_failed = some_section_failed
         self.parsing_error = parsing_error
@@ -62,20 +64,23 @@ class ArxivIdentity:
                 affiliation=None,
                 journal_reference=None,
                 version=None,
-                created_on =None):
+                created_on =None
+                ):
         self.identity = identity
         self.url = url
         self.title = title
         self.abstract = abstract
         self.categories = categories
         self.published = published
-        self.updated = updated
+        self.updated = published if updated is None or updated== '' else updated
         self.authors = authors
         self.affiliation = affiliation
         self.version = version
         self.journal_reference = journal_reference
-        if created_on is None or type(created_on) == 'list': 
-            create_on = datetime.datetime.now().strftime(DATE_FORMAT)
+        if created_on is None:
+            created_on = datetime.datetime.now().isoformat()
+
+        created_on = dateparser.parse(str(created_on))
         self.created_on = created_on
 
     @classmethod
@@ -90,7 +95,7 @@ class ArxivIdentity:
             "categories": oa2Record['categories'].split(' '),
             "journal_reference": oa2Record['journal_reference'],
             "published":oa2Record['created'],
-            "updated":oa2Record['updated'],
+            "updated":oa2Record['created'] if oa2Record['updated'] == '' else oa2Record['created'],
             "authors":oa2Record['authors'],
             "affiliation":oa2Record['affiliation'],
             "version":None # Need to check at Mining Time as Not Best Avaialable during scraping. 
@@ -113,7 +118,7 @@ class ArxivIdentity:
             "categories":[ t['term'] for t in arxiv_response['tags'] ],
             "journal_reference":arxiv_response['journal_reference'],
             "published":arxiv_response['published'],
-            "updated":arxiv_response['updated'],
+            "updated": arxiv_response['published'] if arxiv_response['updated'] == '' else arxiv_response['updated'],
             "authors":arxiv_response['authors'],
             "affiliation":[],
             "version":version
@@ -140,7 +145,9 @@ class ArxivIdentity:
         return parts[0], int(parts[1])
 
     def to_json(self):
-        return {**self.__dict__}
+        data_dict = {**self.__dict__}
+        data_dict['created_on'] = data_dict['created_on'].isoformat()
+        return data_dict
 
     def __str__(self):
         meta_str = ''.join(['\t'+str(t[0])+"  :  "+str(t[1])+'\n' for t in self.__dict__.items()])
@@ -155,14 +162,15 @@ class ArxivPaperProcessingMeta():
                  latex_files=0,\
                  mined = True,\
                  latex_parsed=True,\
-                 updated_on=datetime.datetime.now().strftime(DATE_FORMAT),
+                 updated_on=None,
                  ):
-
         # Metadata about the Arxiv Latex project.
         self.pdf_only = pdf_only
         self.latex_files = latex_files  # number of files
-        self.updated_on = updated_on # When was it Mined. 
+        if updated_on is None:
+            updated_on = datetime.datetime.now().isoformat()
 
+        self.updated_on = dateparser.parse(str(updated_on))# .isoformat() # When was it Mined. 
         # latex-processing status
         self.mined = mined # if no error processing and not a PDF it is True
         
@@ -181,7 +189,9 @@ class ArxivPaperProcessingMeta():
         '''.format(**self.to_json())
         
     def to_json(self):
-        return {**self.__dict__}
+        data_dict = {**self.__dict__}
+        data_dict['updated_on'] = data_dict['updated_on'].isoformat()
+        return data_dict
 
 
 class ArxivRecord(object):
@@ -210,12 +220,17 @@ class ArxivRecord(object):
             identity=None,\
             paper_processing_meta=None,\
             latex_parsed_document=None,\
-            latex_parsing_result=None\
+            latex_parsing_result=None,\
+            created_on = None
             ):
         self.identity = identity
         self.paper_processing_meta = paper_processing_meta
         self.latex_parsed_document = latex_parsed_document
         self.latex_parsing_result = latex_parsing_result
+        if created_on is None:
+            created_on = datetime.datetime.now().isoformat()
+        
+        self.created_on =dateparser.parse(str(created_on))# .isoformat()
 
 
     def to_json(self):
@@ -223,7 +238,8 @@ class ArxivRecord(object):
             'identity' :self.identity.to_json(),
             'paper_processing_meta' : None if self.paper_processing_meta is None else self.paper_processing_meta.to_json(),
             'latex_parsing_result' : None if self.latex_parsing_result is None else self.latex_parsing_result.to_json(),
-            'latex_parsed_document' : None if self.latex_parsed_document is None else self.latex_parsed_document.to_json()
+            'latex_parsed_document' : None if self.latex_parsed_document is None else self.latex_parsed_document.to_json(),
+            'created_on' : self.created_on.isoformat()
         }
         return data_dict
     
@@ -237,18 +253,19 @@ class ArxivRecord(object):
             raise CorruptArxivRecordException()
         
         identity = ArxivIdentity(**json_object['identity'])
-        if 'paper_processing_meta' in json_object:
+        if 'paper_processing_meta' in json_object and json_object['paper_processing_meta']:
             paper_processing_meta = ArxivPaperProcessingMeta(**json_object['paper_processing_meta'])
-        if 'latex_parsing_result' in json_object:
+        if 'latex_parsing_result' in json_object and json_object['latex_parsing_result']:
             latex_parsing_result = ArxivLatexParsingResult(**json_object['latex_parsing_result'])
-        if 'latex_parsed_document' in json_object:
+        if 'latex_parsed_document' in json_object and json_object['latex_parsed_document']:
             latex_parsed_document = ArxivDocument.from_json(json_object['latex_parsed_document'])
         
         return cls(
             identity = identity,
             paper_processing_meta = paper_processing_meta,
             latex_parsing_result = latex_parsing_result,
-            latex_parsed_document = latex_parsed_document
+            latex_parsed_document = latex_parsed_document,
+            created_on= json_object['created_on']
         )
 
 class ArxivPaperStatus:
@@ -260,20 +277,34 @@ class ArxivPaperStatus:
 
     def __init__(self,
                 mined = False,
-                created_on = datetime.datetime.now().strftime(DATE_FORMAT),
+                created_on =None,
                 scraped = False,
+                mining = False,
                 updated_on = None
                 ):
-        self.mined = mined
         self.scraped = scraped
-        self.created_on = created_on
-        self.updated_on = updated_on
+        
+        # Latex Mining Status
+        self.mined = mined
+        self.mining = mining
+        if updated_on is None:
+            updated_on = datetime.datetime.now().isoformat()
+
+        if created_on is None:
+            created_on = datetime.datetime.now().isoformat()
+        
+        # Timestamps.
+        self.created_on = dateparser.parse(str(created_on))# .isoformat()
+        self.updated_on = dateparser.parse(str(updated_on))# .isoformat()
     
     def to_json(self):
-        return {**self.__dict__}
+        data_dict = {**self.__dict__}
+        data_dict['created_on'] = data_dict['created_on'].isoformat()
+        data_dict['updated_on'] = data_dict['updated_on'].isoformat()
+        return data_dict
 
     def update(self):
-        self.updated_on = datetime.datetime.now().strftime(DATE_FORMAT)
+        self.updated_on = datetime.datetime.now()# .isoformat()
     
     @classmethod
     def from_json(cls,json_object):
