@@ -121,7 +121,7 @@ class MiningProcess(Process,MiningEngine):
                 
             if mined_status is False:
                 self.logger.error('Couldnt Mine Paper  : %s'%paper_record.identity.identity)
-                time.sleep(self.mining_interval)
+                time.sleep(self.empty_wait_time)
                 continue
             self.logger.info('Saved Paper To DB : %s'%paper_record.identity.identity)
 
