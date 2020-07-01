@@ -43,8 +43,8 @@ class MiningEngine:
                                                     detex_path=self.detex_path)
         try:
             paper_obj.mine_paper()
-        except:
-            self.logger.error('Failed Mining Paper : %s'%paper_obj.identity.identity)
+        except Exception as e:
+            self.logger.error('Failed Mining Paper : %s\n\n%s'%(paper_obj.identity.identity,str(e)))
             return None
         
         return paper_obj
