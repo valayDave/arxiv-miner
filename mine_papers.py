@@ -11,6 +11,7 @@ import click
 import os
 from config import Config
 from cli import db_cli
+import time
 
 DEFAULT_PATH = Config.mining_data_path
 DEFAULT_DETEX_PATH = Config.detex_path
@@ -27,6 +28,7 @@ Mine Records and Send them back to The DB.
 '''
 
 @db_cli.command(help=MINER_HELP)
+@click.option('--num_procs',default=1,help='Number Of Mining Processes To Start.')
 @click.option('--mining_data_path',default=DEFAULT_PATH,type=click.Path())
 @click.option('--forever', is_flag=True, help="Run the Miner Without any max Caps")
 @click.option('--detex_path',default=DEFAULT_DETEX_PATH,help='Path To Detex Binary For Latex Processing')
@@ -35,6 +37,7 @@ Mine Records and Send them back to The DB.
 @click.option('--empty_wait_time',default=DEFAULT_EMPTY_WAIT_TIME,help='Time To Wait if No Unmined Records Were Returned')
 @click.pass_context
 def start_miner(ctx, # click context object: populated from db_cli
+                num_procs,
                 mining_data_path,\
                 forever=False,
                 detex_path=DEFAULT_DETEX_PATH,
@@ -42,17 +45,24 @@ def start_miner(ctx, # click context object: populated from db_cli
                 mining_limit=30,
                 empty_wait_time = 600
                 ):
-    database_client = ctx.obj['db_class'](**ctx.obj['db_args']) # Create Database 
     if forever:
         mining_limit = None
-    process = MiningProcess(database_client,\
-                            mining_data_path,\
-                            detex_path,\
-                            mining_interval = mining_interval,\
-                            mining_limit = mining_limit,\
-                            empty_wait_time = empty_wait_time)
-    process.start()
-    process.join()
+
+    proc_list = []
+    for i in range(num_procs):
+        database_client = ctx.obj['db_class'](**ctx.obj['db_args']) # Create Database 
+        process = MiningProcess(database_client,\
+                                mining_data_path,\
+                                detex_path,\
+                                mining_interval = mining_interval,\
+                                mining_limit = mining_limit,\
+                                empty_wait_time = empty_wait_time)
+        process.start()
+        proc_list.append(process)
+        time.sleep(3)
+    
+    for p in proc_list:
+        p.join()
 
 
 if __name__ == "__main__":

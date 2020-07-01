@@ -1,6 +1,7 @@
 '''
 This is the Generalised CLI origin of the Project. 
-this will be used for the Extracting the 
+this will be used for the Extracting the Important CLI information such as Database 
+Selection etc. Can be used as a gateway to integrate all the submodules into one cli invocation
 '''
 
 import click
@@ -45,7 +46,6 @@ def db_cli(ctx,datastore,use_defaults,host,port,app_name=DEFAULT_APP_NAME):
     
     print_str = '\n %s Process Using %s Datastore'%(app_name,datastore)
     args_str = ''.join(['\n\t'+ i + ' : ' + str(args[i]) for i in args])
-    # args_str = json.dumps(args,indent=4)
     click.secho(print_str,fg='green',bold=True)
     click.secho(args_str+'\n\n',fg='magenta')
     arxiv_database = client_class(**args)
