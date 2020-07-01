@@ -12,6 +12,13 @@ from .paper import ArxivPaper
 import time
 from multiprocessing import Process,Event
 from signal import signal, SIGINT
+import random
+import string
+
+def random_string(stringLength=8):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(stringLength))
+
 
 class MiningEngine:
     """ 
@@ -28,7 +35,7 @@ class MiningEngine:
         self.db = database
         self.data_root_path = data_root_path
         self.detex_path = detex_path
-        self.logger = create_logger(self.__class__.__name__)
+        self.logger = create_logger(self.__class__.__name__+"__"+random_string())
 
     def mine_record(self,paper_record:ArxivRecord):
         paper_obj = ArxivPaper.from_arxiv_record(self.data_root_path,\
