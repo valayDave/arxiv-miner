@@ -104,7 +104,7 @@ class MiningProcess(Process,MiningEngine):
                     break
             if self.exit.is_set():
                 break
-            
+            time.sleep(self.mining_interval)
             paper_record,mined_status = self._paper_mining_logic()
             self.num_mined+=1
             if not paper_record: # Sleep If DB says There are Unmined Papers
