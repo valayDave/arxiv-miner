@@ -114,7 +114,7 @@ class MiningProcess(Process,MiningEngine):
             if self.exit.is_set():
                 break
             # Sleep Every `sleep_interval_count` records 
-            if self.num_mined % self.sleep_interval_count == 0:
+            if self.num_mined % self.sleep_interval_count == 0 and self.num_mined > 0:
                 time.sleep(self.empty_wait_time)
             time.sleep(self.mining_interval)
             paper_record,mined_status = self._paper_mining_logic()
