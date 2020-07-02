@@ -79,7 +79,8 @@ class MiningProcess(Process,MiningEngine):
             detex_path,\
             mining_interval=5,\
             mining_limit=30,
-            empty_wait_time = 600):
+            empty_wait_time = 600,
+            sleep_interval_count = 10):
         
         # Instantiate The Processes
         Process.__init__(self,daemon=False) # Making it a deamon process. 
@@ -90,6 +91,7 @@ class MiningProcess(Process,MiningEngine):
         self.mining_limit = mining_limit
         self.num_mined = 0
         self.exit = Event()
+        self.sleep_interval_count = sleep_interval_count
         signal(SIGINT, self.shutdown)
         
     def run(self):
@@ -111,6 +113,9 @@ class MiningProcess(Process,MiningEngine):
                     break
             if self.exit.is_set():
                 break
+            # Sleep Every `sleep_interval_count` records 
+            if self.num_mined % self.sleep_interval_count == 0:
+                time.sleep(self.empty_wait_time)
             time.sleep(self.mining_interval)
             paper_record,mined_status = self._paper_mining_logic()
             self.num_mined+=1
