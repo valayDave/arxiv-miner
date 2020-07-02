@@ -20,6 +20,7 @@ DEFAULT_MINING_INTERVAL=5
 SLEEP_BETWEEEN_PORCS = 5
 DEFAULT_MINING_LIMIT=30
 DEFAULT_EMPTY_WAIT_TIME= 600
+DEFAULT_SLEEP_INTERVAL_COUNT = 50
 APP_NAME = 'ArXiv-Miner'
 MINER_HELP = '''
 
@@ -36,6 +37,7 @@ Mine Records and Send them back to The DB.
 @click.option('--mining_interval',default=DEFAULT_MINING_INTERVAL,help='Interval in Seconds To Wait If a Paper Was Not Mined')
 @click.option('--mining_limit',default=DEFAULT_MINING_LIMIT,help='Maximum Number of Papers To Mine')
 @click.option('--empty_wait_time',default=DEFAULT_EMPTY_WAIT_TIME,help='Time To Wait if No Unmined Records Were Returned')
+@click.option('--sleep_interval_count',default=DEFAULT_SLEEP_INTERVAL_COUNT,help='The Process Will Sleep for `empty_wait_time` after `sleep_interval_count` records')
 @click.pass_context
 def start_miner(ctx, # click context object: populated from db_cli
                 num_procs,
@@ -44,7 +46,8 @@ def start_miner(ctx, # click context object: populated from db_cli
                 detex_path=DEFAULT_DETEX_PATH,
                 mining_interval=5,\
                 mining_limit=30,
-                empty_wait_time = 600
+                empty_wait_time = 600,
+                sleep_interval_count=DEFAULT_SLEEP_INTERVAL_COUNT
                 ):
     if forever:
         mining_limit = None
@@ -57,7 +60,8 @@ def start_miner(ctx, # click context object: populated from db_cli
                                 detex_path,\
                                 mining_interval = mining_interval,\
                                 mining_limit = mining_limit,\
-                                empty_wait_time = empty_wait_time)
+                                empty_wait_time = empty_wait_time,\
+                                sleep_interval_count=sleep_interval_count)
         process.start()
         proc_list.append(process)
         time.sleep(3)
