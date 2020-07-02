@@ -123,7 +123,7 @@ class MiningProcess(Process,MiningEngine):
                 self.logger.error('Couldnt Mine Paper  : %s'%paper_record.identity.identity)
                 time.sleep(self.empty_wait_time)
                 continue
-            self.logger.info('Saved Paper To DB : %s'%paper_record.identity.identity)
+            self.logger.info('Saved Paper To DB : %s Completed Mining %d Paper'%(paper_record.identity.identity,self.num_mined))
 
         
         self.logger.info('Miner Mined : %d'%self.num_mined)

@@ -9,11 +9,8 @@ tex2py
 matplotlib
 pandas
 click
-# feedparser is only if you want to scrape arxiv with Andrej's script: Remove Later once move to personal solution
-feedparser
-numpy
-scipy
 
+numpy
 #date parsing
 dateparser 
 
