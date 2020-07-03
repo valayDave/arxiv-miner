@@ -95,8 +95,9 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         Finds Latest Undone docs, Find's status and hits archieve. 
         """
         # Find Unprocessed Document : `paper_processing_meta` holds that data. 
+            # .query('bool',**{'paper_processing_meta.mined':None})\
         query = Search(using=self.es, index=self.index_name)\
-            .query('bool',**{'paper_processing_meta.mined':None})\
+            .query(~Q('exists',field='paper_processing_meta.mined'))\
             .sort('-identity.published')\
             .source(['_id'])
 
