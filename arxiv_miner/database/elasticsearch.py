@@ -92,7 +92,19 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         """get_unmined_data 
         Extract one Random Unmined Paper from database 
         and mark that paper as mining=True
+        This Should Also Query 
         """
+        # Find Unprocessed Document : `paper_processing_meta` holds that data. 
+        query = Search(using=self.es, index=self.index_name)\
+            .query('bool',**{'paper_processing_meta':None})\
+            .sort('-identity.published')\
+            .source(['_id'])
+
+        query = query[0:20] # Extract 50 records
+        resp = query.execute()
+        
+        id_list = list(map(lambda x: x.meta.id, resp.hits))
+        id_filter = Q('terms',**{'_id':id_list})
         # Search status index
         query = Q ('bool',\
                 must=[ # Must not contain this field 
@@ -100,10 +112,10 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
                     Q('match',**{'mined':False})  
                 ]  
             )
-             
         s = Search(using=self.es, index=self.status_index_name) \
-            .query(query)[:10] # Get only One record. 
-        # raise NotImplementedError()
+            .query(query)\
+            .filter(id_filter)
+
         search_resp = s.execute()
         if len(search_resp.hits) == 0:
             return None
