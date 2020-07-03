@@ -96,7 +96,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         """
         # Find Unprocessed Document : `paper_processing_meta` holds that data. 
         query = Search(using=self.es, index=self.index_name)\
-            .query('bool',**{'paper_processing_meta':None})\
+            .query('bool',**{'paper_processing_meta.mined':None})\
             .sort('-identity.published')\
             .source(['_id'])
 
