@@ -92,7 +92,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         """get_unmined_data 
         Extract one Random Unmined Paper from database 
         and mark that paper as mining=True
-        This Should Also Query 
+        Finds Latest Undone docs, Find's status and hits archieve. 
         """
         # Find Unprocessed Document : `paper_processing_meta` holds that data. 
         query = Search(using=self.es, index=self.index_name)\
@@ -100,7 +100,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             .sort('-identity.published')\
             .source(['_id'])
 
-        query = query[0:20] # Extract 50 records
+        query = query[0:30] # Extract 50 records
         resp = query.execute()
         
         id_list = list(map(lambda x: x.meta.id, resp.hits))
