@@ -211,7 +211,7 @@ class ArxivPaper(ArxivRecord):
             shutil.rmtree(self.latex_root_path)
         # print("Extracted Latex Data")
         if save_data:
-            self.save_to_fs()
+            self.to_fs()
     
     def mine_paper(self,store_latex=False):
         """mine_paper 

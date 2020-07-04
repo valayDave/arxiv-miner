@@ -30,7 +30,13 @@ def split_match(split_value:str,splitting_string:str,split_upto=0.5,split_bins=1
     :param splitting_string: [description]
     :param split_upto: [float], defaults to 0.5 
     :param split_bins: [int] the number bins inside which each `split_value` will fall under. 
-                                eg. if split_value = "abcde",split_bins=3,split_upto=0.5
+                                eg. 
+                                    split_value = "Deep Learning Techniques for ASD Diagnosis and Rehabilitation'"
+                                    split_bins=3,
+                                    split_upto=0.5
+                                    then the text will be checked for matches against : 
+                                        - ['Deep Learning Techniques for','Deep Learning Techniques for ASD','Deep Learning Techniques for ASD Diagnosis','Deep Learning Techniques for ASD Diagnosis and' ....]
+                                        - The purpose of doing this is to ensure a partial match of a string can help extract the split text 
     :returns splitted_text : List[String] : [s1,s2] or []
     """
     split_value = split_value.split(' ') # This make it remove words instead of the characters. 
@@ -44,6 +50,8 @@ def split_match(split_value:str,splitting_string:str,split_upto=0.5,split_bins=1
     split_values_to_checks = [' '.join(split_value[:index]) for index in slice_indices] 
     
     for split_val in split_values_to_checks:
+        if split_val == '': # In case of empty seperator leaave it. 
+            continue
         current_text_split = splitting_string.split(split_val)
         if len(current_text_split) > 1:
             return current_text_split
