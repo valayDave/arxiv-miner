@@ -1,5 +1,10 @@
 from .core import ArxivDatabase
-from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus
+from ..record import \
+        ArxivRecord,\
+        ArxivIdentity,\
+        ArxivPaperStatus,\
+        ArxivSematicParsedResearch
+
 from ..paper import ArxivPaper
 from ..logger import create_logger
 from ..exception import \
@@ -22,6 +27,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             raise ElasticsearchIndexMissingException()
         self.index_name = index_name
         self.status_index_name = index_name+'_status'
+        self.parsed_research_index_name = index_name + '_parsed_research'
         self.es = elasticsearch.Elasticsearch([{"host": host, "port": port}])
         if not self.es.ping():
             raise ArxivDatabaseConnectionException(host,port,'')
@@ -44,7 +50,21 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         es_status = self.es.get(index=self.status_index_name,id=paper_id)
         return self._status_from_source(es_status)
 
-    def _status_from_source(self,es_dict):
+    def _get_parsed_research(self,paper_id):
+        es_research = self.es.get(index=self.parsed_research_index_name,id=paper_id)
+        return self._parsed_research_from_source(es_research)
+    
+    @staticmethod
+    def _parsed_research_from_source(es_dict):
+        """_status_from_source 
+        Creates the datastructures from the JSON dict returned from ES. 
+        :returns ArxivSematicParsedResearch
+        """
+        record_json = es_dict['_source']
+        return ArxivSematicParsedResearch.from_json(record_json)
+
+    @staticmethod
+    def _status_from_source(es_dict):
         """_status_from_source 
         Creates the datastructures from the JSON dict returned from ES. 
         :returns ArxivPaperStatus 
@@ -53,7 +73,8 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         status = ArxivPaperStatus.from_json(dict(record_json)) 
         return status
     
-    def _record_from_source(self,es_dict):
+    @staticmethod
+    def _record_from_source(es_dict):
         """_record_from_source 
         Creates the datastructures from the JSON dict returned from ES. 
         :returns ArxivRecord 
@@ -74,6 +95,11 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         record_doc = record.to_json()
         self.es.index(index=self.index_name,id=record.identity.identity,body=record_doc)
  
+    def _save_semantic_parsed_research(self,record:ArxivSematicParsedResearch):
+        record_doc = record.to_json()
+        self.es.index(index=self.parsed_research_index_name,id=record.identity.identity,body=record_doc)
+    
+    
     def query(self,paper_id) -> ArxivRecord:
         """query [summary]
         Query Database for a paper_id. Return None is doesn't Exist. 
@@ -145,6 +171,27 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         Save ArxivRecord which could be mined/unmined to database.
         """
         self._save_record(record)
+
+    def get_semantic_parsed_research(self,paper_id):
+        try: 
+            return self._get_parsed_research(paper_id)
+        except:
+            return None
+        
+    def set_semantic_parsed_research(self,record:ArxivSematicParsedResearch):
+        self._save_semantic_parsed_research(record)
+    
+    def record_stream(self):
+        """record_stream
+        Stream All records from ES. 
+        TODO : Make it filterable and Queryable in the future. 
+        :yield: [ArxivRecord]
+        """
+        search_obj = Search(using=self.es, index=self.index_name)\
+                            .query(Q())
+        for hit in search_obj.scan():
+            yield ArxivRecord.from_json(hit.to_dict())
+            
 
     def archive(self):
         query = Q ()

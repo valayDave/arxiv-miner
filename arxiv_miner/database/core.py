@@ -1,7 +1,7 @@
 import os
 import rpyc
 from signal import signal,SIGINT
-from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus
+from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus,ArxivSematicParsedResearch
 from ..utils import dir_exists,save_json_to_file,load_json_from_file
 from ..paper import ArxivPaper
 from ..logger import create_logger
@@ -14,7 +14,6 @@ class ArxivDatabase:
     The whole goal of this is to Adapter to is have minimal 
     effort in switching the data-storage layer without affecting the compute 
     layer.
-    
     """
     
     def query(self,paper_id) -> ArxivRecord:
@@ -36,6 +35,18 @@ class ArxivDatabase:
         """
         raise NotImplementedError()
 
+    def get_semantic_parsed_research(self,paper_id) -> ArxivSematicParsedResearch:
+        """get_semantic_parsed_research 
+        extract the `ArxivSematicParsedResearch` object from the Datasource
+        """
+        raise NotImplementedError()
+
+    def set_semantic_parsed_research(self,record:ArxivSematicParsedResearch) -> None:
+        """set_semantic_parsed_research 
+        Save `ArxivSematicParsedResearch` to the datasource. 
+        """
+        raise NotImplementedError()
+
     def set_mined(self,identity:ArxivIdentity,mined_status:bool) -> None:
         """mark_mined 
         Set ArxivIdentity as Mined 
@@ -54,3 +65,4 @@ class ArxivDatabase:
     def archive(self): # To Extract all the data from DB
         raise NotImplementedError()
 
+    

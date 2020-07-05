@@ -9,7 +9,7 @@ from .exception import \
         MaxSectionSizeException,\
         DetexBinaryAbsent
 
-from .symantic_parsing import Section
+from .semantic_parsing import Section
 
 
 def get_tex_tree(tex_path):

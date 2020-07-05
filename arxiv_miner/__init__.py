@@ -1,5 +1,12 @@
-from .paper import ArxivPaper
-from .symantic_parsing import ArxivDocument,Section
+from .paper import \
+        ArxivPaper,\
+        ResearchPaperFactory
+        
+from .semantic_parsing import\
+        ArxivDocument,\
+        Section,\
+        ResearchPaper,\
+        ResearchPaperSematicParser
 
 from .loader import \
     ArxivLoader,\
@@ -11,7 +18,8 @@ from .record import \
     ArxivLatexParsingResult,\
     ArxivPaperProcessingMeta,\
     ArxivRecord,\
-    ArxivPaperStatus
+    ArxivPaperStatus,\
+    ArxivSematicParsedResearch
 
 from .database import \
         ArxivFSDatabaseService,\

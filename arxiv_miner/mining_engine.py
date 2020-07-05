@@ -2,7 +2,7 @@
 Scraping Engine creates the Identiy Data for the papers. 
 The Mining Engine on Instantiation 
     - Will check For the New Papers to Mine. 
-    - It will Create a 
+    - It will Create a ArxivPaper --> Download Latex --> Parse Latex --> Sectionalise ?
 """
 from .database import ArxivDatabase
 from .record import ArxivRecord,ArxivIdentity
