@@ -2,13 +2,16 @@
 Scraping Engine creates the Identiy Data for the papers. 
 The Mining Engine on Instantiation 
     - Will check For the New Papers to Mine. 
-    - It will Create a ArxivPaper --> Download Latex --> Parse Latex --> Sectionalise ?
+    - It will Create a ArxivPaper 
+                --> Download Latex 
+                --> Parse Latex 
+                --> Sematically Parse the Paper here too. 
 """
 from .database import ArxivDatabase
-from .record import ArxivRecord,ArxivIdentity
+from .record import ArxivRecord,ArxivIdentity,ArxivSematicParsedResearch
 from .logger import create_logger
 from .exception import ArxivAPIException
-from .paper import ArxivPaper
+from .paper import ArxivPaper,ResearchPaperFactory
 import time
 from multiprocessing import Process,Event
 from signal import signal, SIGINT
@@ -53,6 +56,7 @@ class MiningEngine:
         """_paper_mining_logic 
         1. Get unmined ArxivRecord
         2. Create `AxivPaper` from `ArxivRecord` and mine it 
+        3. Create `ArxivSematicParsedResearch` from `ArxivRecord` and save it .
         3. save Record and Mark as Mined. 
         """
         paper_record = self.db.get_unmined_paper()
@@ -66,7 +70,11 @@ class MiningEngine:
             paper_mined = True
             self.db.save_record(paper_obj.to_arxiv_record())
             paper_record = paper_obj.to_arxiv_record()
-
+        
+        self.db.set_semantic_parsed_research(ArxivSematicParsedResearch(\
+            identity=paper_record.identity,\
+            research_object=ResearchPaperFactory.from_arxiv_record(paper_record),\
+        ))
         self.db.set_mined(paper_record.identity,paper_mined)
         
         return paper_record,paper_mined

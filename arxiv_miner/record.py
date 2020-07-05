@@ -307,6 +307,8 @@ class ArxivSematicParsedResearch:
                 created_on= json_object['created_on']
             )
 
+
+
 class ArxivPaperStatus:
     """ 
     This Record will help mark different stages of the 
@@ -326,6 +328,7 @@ class ArxivPaperStatus:
         # Latex Mining Status
         self.mined = mined
         self.mining = mining
+
         if updated_on is None:
             updated_on = datetime.datetime.now().isoformat()
 
