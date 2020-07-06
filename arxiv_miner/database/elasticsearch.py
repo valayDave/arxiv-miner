@@ -211,14 +211,14 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
 TEXT_HIGHLIGHT = [
     'identity.title',
     'identity.abstract',
-    'research_object.introduction',
-    'research_object.related_works',
-    'research_object.methodology',
-    'research_object.experiments',
-    'research_object.results',
-    'research_object.conclusion',
-    'research_object.limitations',
-    'research_object.dataset',
+    'research_object.introduction.text',
+    'research_object.related_works.text',
+    'research_object.methodology.text',
+    'research_object.experiments.text',
+    'research_object.results.text',
+    'research_object.conclusion.text',
+    'research_object.limitations.text',
+    'research_object.dataset.text',
     'research_object.unknown_sections.subsections.name.keyword',
 ]
 
@@ -438,7 +438,7 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
             
             highlights = []
             meta_dict =hit.meta.to_dict()
-            # print(meta_dict)
+            print(meta_dict)
             if 'highlight' in meta_dict:
                 for k in list(meta_dict['highlight'].keys()):
                     for rm in self.annotation_remove_keys:

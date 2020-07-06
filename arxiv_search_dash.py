@@ -88,11 +88,11 @@ class DataView():
         <div>
         {cats_html}{date_html}
         </div>
-        </summary>
-        <details>
         <div>
         {findings_html}
         </div>
+        </summary>
+        <details>
         <p>
         {abstract}
         </p>
