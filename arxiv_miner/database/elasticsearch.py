@@ -438,7 +438,6 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
             
             highlights = []
             meta_dict =hit.meta.to_dict()
-            print(meta_dict)
             if 'highlight' in meta_dict:
                 for k in list(meta_dict['highlight'].keys()):
                     for rm in self.annotation_remove_keys:
