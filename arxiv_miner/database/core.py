@@ -64,5 +64,3 @@ class ArxivDatabase:
 
     def archive(self): # To Extract all the data from DB
         raise NotImplementedError()
-
-    

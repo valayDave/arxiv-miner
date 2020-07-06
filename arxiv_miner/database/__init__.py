@@ -1,5 +1,10 @@
 from .core import ArxivDatabase
-from .elasticsearch import ArxivElasticSeachDatabaseClient
+from .elasticsearch import \
+    ArxivElasticTextSearch,\
+    ArxivElasticSeachDatabaseClient,\
+    TextSearchFilter,\
+    SearchResults
+
 from .filesystem import ArxivFSDatabase
 from .proxy_service import \
             ArxivFSDatabaseService,\
@@ -21,4 +26,4 @@ def get_database_client(client_name):
     if client_name == 'fs':
         return ArxivDatabaseServiceClient
     elif client_name == 'elasticsearch':
-        return ArxivElasticSeachDatabaseClient
+        return ArxivElasticTextSearch

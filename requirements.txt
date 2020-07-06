@@ -19,3 +19,4 @@ expiringdict
 rpyc
 elasticsearch
 elasticsearch_dsl
+luqum

@@ -308,7 +308,6 @@ class ArxivSematicParsedResearch:
             )
 
 
-
 class ArxivPaperStatus:
     """ 
     This Record will help mark different stages of the 
