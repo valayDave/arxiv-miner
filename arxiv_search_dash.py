@@ -58,6 +58,7 @@ class DataView():
     def _run_search(self):
         # str_txt = None if self.search_text == '' else self.search_text
         search_resp = self.get_db_data()
+        print(len(search_resp))
         if len(search_resp) > 0:
             st.markdown(DataView.badge_it("Found %d Articles"%search_resp[0].num_results,badge_type='badge-success'),unsafe_allow_html=True)
         for resp in search_resp:
@@ -82,11 +83,16 @@ class DataView():
             findings_html = '<i>Results Found in</i>&nbsp;&nbsp;'+'&nbsp;'.join([DataView.badge_it(cat,badge_type='badge-primary') for cat in block.result_locations])
         else:
             findings_html = '<span></span>'
+
+        
+        url_tag = '<a href={url} style="text-align:right"><svg width="2em" height="2em" viewBox="0 0 16 16" class="bi bi-link" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/><path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/></svg></a>'\
+            .format(url=block.identity.url)
+
         total ='''
         <summary>
         <h3>{title}</h3>
         <div>
-        {cats_html}{date_html}
+        {cats_html}{date_html}<div style="display:inline-block">{url_tag}</div>
         </div>
         <div>
         {findings_html}
@@ -99,8 +105,10 @@ class DataView():
         </details>
         <br/>
         '''.format(title=block.identity.title,\
+                    url_tag=url_tag,\
                     cats_html=cats_html,\
                     date_html=date_html,\
+                    # url=block.identity.url,\
                     findings_html=findings_html,\
                     abstract=block.identity.abstract)
         # total = cats_html +date_html + details_html
