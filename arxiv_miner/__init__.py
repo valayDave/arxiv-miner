@@ -29,7 +29,8 @@ from .database import \
         SearchResults,\
         ArxivElasticTextSearch,\
         get_database_client,\
-        SUPPORTED_DBS
+        SUPPORTED_DBS,\
+        FIELD_MAPPING
 
 from .scraping_engine import \
         DailyScrapingEngine,\

@@ -207,7 +207,18 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             es_record
 
 
-
+FIELD_MAPPING = {
+    'identity.title':'Title',
+    'identity.abstract':'Abstract',
+    'research_object.introduction.text':'Introduction',
+    'research_object.related_works.text':'Related_works',
+    'research_object.methodology.text':'Methodology',
+    'research_object.experiments.text':'Experiments',
+    'research_object.results.text':'Results',
+    'research_object.conclusion.text':'Conclusion',
+    'research_object.limitations.text':'Limitations',
+    'research_object.dataset.text':'Dataset'
+}
 TEXT_HIGHLIGHT = [
     'identity.title',
     'identity.abstract',

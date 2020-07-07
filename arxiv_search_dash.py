@@ -8,27 +8,57 @@ import arxiv_miner
 from arxiv_miner import \
         ArxivElasticTextSearch,\
         TextSearchFilter,\
-        SearchResults
+        SearchResults,\
+        FIELD_MAPPING
 
 import click
 import dateparser
 
 from cli import database_choice,common_run_options
 DEFAULT_APP_NAME = 'ArXiv-Search-Dashboard'
-
+APP_HELP_STR = '''
+<summary>
+<i>Help</i>
+</summary>
+<details>
+<p>
+This is a search engine over the CS content in ArXiv. 
+</p>
+<p>
+ArXiv Contains Over 400K+ Opensource Research papers in Computer Science
+</p>
+<p>
+The purpose of this interface is to simplify search and give better Sematic context to the results of the search. 
+</p>
+<p>
+'AND' ,'OR' , 'NOT', '()' are Reserved Keywords in the search text
+</p>
+<p>
+Search Queries Can be of the free text form or of: 
+<ul>
+    <li> "deep learning" AND "data science" </li>
+    <li> ("deep learning" AND "Transformer" ) OR ("Ensemble Learning")</li>
+</ul>
+</p>
+<br/>
+'''
 class DataView():
     def __init__(self,database:ArxivElasticTextSearch):
         super().__init__()
         if type(database) != ArxivElasticTextSearch:
             raise("Elastic Search Required For Text Based DB Search")
-        st.markdown("# CS ArXiv Semantic Search")
+        st.title("CS ArXiv Semantic Search")
+
+
+        st.sidebar.title("Search Options")
+        
         self.db = database
         self.search_text = st.text_input("What Are you Looking For ?")
         
-        self.start_date = st.sidebar.date_input('Start Date',(datetime.datetime.now()-datetime.timedelta(days=30)))
-        self.end_date = st.sidebar.date_input('End Date',datetime.datetime.now())
+        self.start_date = st.sidebar.date_input('From Date ?',(datetime.datetime.now()-datetime.timedelta(days=30)))
+        self.end_date = st.sidebar.date_input('To Date ?',datetime.datetime.now(),max_value=datetime.datetime.now())
         topics = arxiv_miner.get_cs_topics()
-        self.selected_topics = st.sidebar.multiselect("Select Topics To Look For :",topics,None,lambda x:arxiv_miner.COMPUTER_SCIENCE_TOPICS[x])
+        self.selected_topics = st.sidebar.multiselect("Select CS Topics To Look For :",topics,None,lambda x:arxiv_miner.COMPUTER_SCIENCE_TOPICS[x])
         self.page_number = st.sidebar.number_input('Page Number',
                                                     min_value=1,
                                                     value=1,
@@ -39,12 +69,19 @@ class DataView():
                                                     value=10,
                                                     step=10,
                                                     )
+
+        if len(self.search_text) > 0:
+            self.text_filter_sections = st.sidebar.multiselect("Do you Want to Look Specifically in some section of the a Paper's Research ?",list(FIELD_MAPPING.keys()),None,lambda x: FIELD_MAPPING[x])
+        else:
+            self.text_filter_sections = []
+        st.sidebar.markdown(APP_HELP_STR,unsafe_allow_html=True)
         self._run_search()
 
     # @st.cache(show_spinner=True,hash_funcs={list:id})
     def get_db_data(self):
         search_resp = self.db.text_search(TextSearchFilter(
                 string_match_query=self.search_text,\
+                text_filter_fields=self.text_filter_sections,\
                 start_date_key=str(self.start_date),\
                 end_date_key=str(self.end_date),\
                 category_filter_values=self.selected_topics,\
@@ -58,7 +95,6 @@ class DataView():
     def _run_search(self):
         # str_txt = None if self.search_text == '' else self.search_text
         search_resp = self.get_db_data()
-        print(len(search_resp))
         if len(search_resp) > 0:
             st.markdown(DataView.badge_it("Found %d Articles"%search_resp[0].num_results,badge_type='badge-success'),unsafe_allow_html=True)
         for resp in search_resp:
@@ -133,18 +169,11 @@ def get_db_obj(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
     database_client = db_arg_obj['db_class'](**db_arg_obj['db_args'])
     return database_client
 
-
         
 def text_search_dashboard(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
     database_client = get_db_obj(use_defaults,host,port)
     DataView(database_client)
-    # st.markdown("# CS ArXiv Semantic Search")
-    # st.text_input("What Are you Looking For ?")
-    # start_date = st.sidebar.date_input('Start Date',datetime.datetime.now())
-    # end_date = st.sidebar.date_input('End Date',datetime.datetime.now())
-    # topics = arxiv_miner.get_cs_topics()
-    # selected_topics = st.sidebar.multiselect("Select Topics To Look For :",topics,None,lambda x:arxiv_miner.COMPUTER_SCIENCE_TOPICS[x])
-
+    
 if __name__=="__main__":
     # text_search_dashboard = wrap_db(text_search_dashboard,main)
     text_search_dashboard(True,None,None)

@@ -3,7 +3,8 @@ from .elasticsearch import \
     ArxivElasticTextSearch,\
     ArxivElasticSeachDatabaseClient,\
     TextSearchFilter,\
-    SearchResults
+    SearchResults,\
+    FIELD_MAPPING
 
 from .filesystem import ArxivFSDatabase
 from .proxy_service import \
