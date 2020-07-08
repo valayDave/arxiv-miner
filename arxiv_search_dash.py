@@ -49,15 +49,27 @@ Search Queries Can be of the free text form or of:
 </p>
 <br/>
 '''
+
+class BookMarkMap:
+    hash_map = {}
+    
+    
+
+@st.cache(hash_funcs={BookMarkMap:id},allow_output_mutation=True)
+def get_bookmarker():
+    return BookMarkMap()
+
 class DataView():
     def __init__(self,database:ArxivElasticTextSearch):
         super().__init__()
         if type(database) != ArxivElasticTextSearch:
             raise("Elastic Search Required For Text Based DB Search")
         st.title("CS ArXiv Semantic Search")
+         
+        self.bookmarker = get_bookmarker()
 
         self.search_text = st.text_input("What Are you Looking For ?")
-        self.view_opt = st.sidebar.selectbox("View Options",['Search','Analytics'])
+        self.view_opt = st.sidebar.selectbox("View Options",['Search','Analytics','Bookmarks'])
 
         st.sidebar.title("Search Options")
         
@@ -86,12 +98,22 @@ class DataView():
 
         if self.view_opt == 'Analytics':
             self._run_charts()
-        else:
+        elif self.view_opt == 'Search':
             self._run_search()
-        
-        # Make A Reading list. 
+        else:
+            # Helps Make A Reading list. 
+            self._show_bookmark_list()   
+
+    def _show_bookmark_list(self):
+        if len(self.bookmarker.hash_map.keys()) == 0:
+            st.markdown("## No Bookmarks Stored Right Now :( ")
+            return 
+        for key in self.bookmarker.hash_map:
+            self.print_block(self.bookmarker.hash_map[key]['response'],allow_bookmarking=False)
     
     def _run_charts(self):
+        # Show Graph of Papers in the Time Period. 
+        # Show Graph of Search result data present distribution
         fig2 =  go.Figure(
             data=[self._run_date_distribution_chart()],
             layout=go.Layout(
@@ -162,18 +184,19 @@ class DataView():
             return "week"
         return "day"
 
-
+    
     def get_db_data(self):
-        search_resp = self.db.text_search(TextSearchFilter(
-                string_match_query=self.search_text,\
-                text_filter_fields=self.text_filter_sections,\
-                start_date_key=str(self.start_date),\
-                end_date_key=str(self.end_date),\
-                category_filter_values=self.selected_topics,\
-                page_number=self.page_number,\
-                page_size=self.page_size,\
-            )
-        )
+        search_resp = get_db_data(self.db,\
+                    TextSearchFilter(
+                        string_match_query=self.search_text,\
+                        text_filter_fields=self.text_filter_sections,\
+                        start_date_key=str(self.start_date),\
+                        end_date_key=str(self.end_date),\
+                        category_filter_values=self.selected_topics,\
+                        page_number=self.page_number,\
+                        page_size=self.page_size
+                    )
+                )
         return search_resp
 
 
@@ -185,20 +208,26 @@ class DataView():
             return 
         st.markdown(DataView.badge_it("Found %d Articles"%search_resp[0].num_results,badge_type='badge-success'),unsafe_allow_html=True)
         for resp in search_resp:
-            self.print_block(resp)
+            bookmarked = False
+            if resp.identity.identity in self.bookmarker.hash_map:
+                bookmarked = True
+            bookmark_button_res,block_identity = self.print_block(resp,bookmarked=bookmarked)
+            if bookmark_button_res:
+                self.bookmarker.hash_map[block_identity] = {'response':resp,"searchterms":self.search_text}
+            else:
+                if resp.identity.identity in self.bookmarker.hash_map:
+                    del self.bookmarker.hash_map[block_identity]
+            
     
     @staticmethod
     def badge_it(tag,badge_structure='badge-pill',badge_type='badge-info'):
         return '<span class="badge {badge_structure} {badge_type}">'.format(badge_type=badge_type,badge_structure=badge_structure)+tag+'</span>'
 
     @staticmethod
-    def print_block(block:SearchResults):
+    def print_block(block:SearchResults,bookmarked=False,allow_bookmarking=True):
         # TODO : Add The following : 
-            # Show context Highlight. 
-            # Show Graph of Papers in the Time Period. 
-            # Show Graph of Search result data present distribution
+            # TODO :Show context Highlight.
         human_readable_date = dateparser.parse(block.identity.published).strftime("%d, %b %Y")
-        # st.markdown(head_string,unsafe_allow_html=True)
         cats = [arxiv_miner.COMPUTER_SCIENCE_TOPICS[cat] if cat in arxiv_miner.COMPUTER_SCIENCE_TOPICS else cat for cat in block.identity.categories]
         cats = [DataView.badge_it(cat) for cat in cats]
         cats = cats[:3]
@@ -211,11 +240,16 @@ class DataView():
         else:
             findings_html = '<span></span>'
 
-        
         url_tag = '<a href={url} target="_blank" style="text-align:right"><svg width="2em" height="2em" viewBox="0 0 16 16" class="bi bi-link" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/><path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/></svg></a>'\
             .format(url=block.identity.url)
 
-        total ='''
+        highlight_print_str = ''
+        for key in  block.highlight_dict.keys():
+            head_str = '<p><b><i>{highlight_heading}<b><i></p>'.format(highlight_heading=key)
+            list_str = '<ul>'+''.join(['<li>'+val.replace('#','').replace('\n','').strip()+'</li>' for val in block.highlight_dict[key]])+'</ul>'
+            highlight_print_str+= head_str+list_str
+        
+        top_block ='''
         <summary>
         <a href={url} target="_blank"><h3>{title}</h3></a>
         <div>
@@ -225,27 +259,53 @@ class DataView():
         {findings_html}
         </div>
         </summary>
-        <details>
-        <p>
-        {abstract}
-        </p>
-        </details>
-        <br/>
         '''.format(title=block.identity.title,\
                     url_tag=url_tag,\
                     cats_html=cats_html,\
                     date_html=date_html,\
                     url=block.identity.url,\
                     findings_html=findings_html,\
-                    abstract=block.identity.abstract)
+                    )
+        st.markdown(top_block,unsafe_allow_html=True)
+        bookmark_button_res = bookmarked
+        if allow_bookmarking: 
+            bookmark_button_res = st.checkbox('Bookmark %s'%block.identity.identity,value=bookmarked)
+        if highlight_print_str == '':
+            abstract_block = '''
+            <details>
+            <p>
+            {abstract}
+            </p>
+            </details>
+            <br/>
+            '''.format(abstract=block.identity.abstract)
+        else:
+            abstract_block = '''
+            <details>
+            <p>
+            {abstract}
+            </p>
+            <p>
+            <h3>Result Match Highlights</h3>
+            {highlight_print_str}
+            </p>
+            </details>
+            <br/>
+            '''.format(abstract=block.identity.abstract,highlight_print_str=highlight_print_str)
         # total = cats_html +date_html + details_html
-        st.markdown('%s'%total,unsafe_allow_html=True)
+        st.markdown('%s'%abstract_block,unsafe_allow_html=True)
+        return (bookmark_button_res,block.identity.identity) # --> Returns button value and identity. 
 
 
- 
+@st.cache(hash_funcs={ArxivElasticTextSearch:id,TextSearchFilter:hash},persist=True,allow_output_mutation=True)
+def get_db_data(\
+        db_conn,\
+        tsf
+    ):
+    return db_conn.text_search(tsf)
 
 
-
+@st.cache(hash_funcs={ArxivElasticTextSearch:id},allow_output_mutation=True)
 def get_db_obj(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
     db_arg_obj = {}
     datastore = 'elasticsearch'

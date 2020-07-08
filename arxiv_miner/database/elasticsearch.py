@@ -264,7 +264,7 @@ class TextSearchFilter:
                 sort_order='descending',\
                 # highlight opts : Aggregation sets this as [] default. 
                 highlights = TEXT_HIGHLIGHT,\
-                highlight_fragments=10,
+                highlight_fragments=60,
                 # Source fields,
                 source_fields=SOURCE_FIELDS,\
                 # Page settings 
@@ -283,6 +283,9 @@ class TextSearchFilter:
         self.page_number = page_number
         self.page_size = page_size
         # self.sort_order = sort_order
+    
+    def __hash__(self): # For UI required Hashing to identify uniqueness of input. 
+        return hash(''.join([str(v) for v in list(self.__dict__.values())]))
 
     @staticmethod
     def _category_filter(category_filter_values,category_field,match_type='AND'):
@@ -406,7 +409,7 @@ class TextSearchFilter:
             )
 
         # final Query setting
-        quer = Q('bool',filter=final_filter)
+        quer = Q('bool',must=final_filter)
         
         # Sort key setting
         if self.sort_key is not None:
@@ -511,10 +514,12 @@ class TermsAggregation(Aggregation):
 class SearchResults:
     identity:ArxivIdentity = None
     result_locations:list = []
-    def __init__(self,identity=None,result_locations=[],num_results=0):
+    def __init__(self,identity=None,result_locations=[],num_results=0,highlight_dict={}):
         self.identity =identity
         self.result_locations = result_locations
         self.num_results = num_results
+        self.highlight_dict = highlight_dict
+
 
 
 
@@ -535,17 +540,23 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
         for hit in text_res:
             
             highlights = []
+            highlight_dict = {
+
+            }
             meta_dict =hit.meta.to_dict()
             if 'highlight' in meta_dict:
                 for k in list(meta_dict['highlight'].keys()):
+                    add_val = k 
                     for rm in self.annotation_remove_keys:
-                        k = k.replace(rm,'')
-                    highlights.append(k.title())
+                        add_val = add_val.replace(rm,'')
+                    highlights.append(add_val.title())
+                    highlight_dict[add_val.title()] = meta_dict['highlight'][k]
             
             response.append(SearchResults(\
                     identity=ArxivIdentity(**hit.to_dict()['identity']),
                     result_locations = highlights,\
-                    num_results=int(text_res.hits.total['value'])
+                    num_results=int(text_res.hits.total['value']),\
+                    highlight_dict=highlight_dict
                     ))
         return response
             
