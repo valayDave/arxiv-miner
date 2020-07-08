@@ -134,26 +134,26 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             Q('range',**TextSearchFilter._date_query('03/01/2019','12/01/2019'))
         ]
         search = Search(using=self.es, index=self.index_name)
-        query= search.query('bool',filter=final_filter)\
+                # .query('bool',filter=final_filter)\
+        query= search\
+                .query(~Q('exists',field='paper_processing_meta.mined'))\
                 .sort('-identity.published')\
                 .source(['_id'])
-            # .query(~Q('exists',field='paper_processing_meta.mined'))\
 
-        query = query[0:30] # Extract 50 records
+        query = query[0:100] # Extract 50 records
         resp = query.execute()
         id_list = list(map(lambda x: x.meta.id, resp.hits))
         id_filter = Q('terms',**{'_id':id_list})
         # Search status index
-        # query = Q ('bool',\
-        #         must=[ # Must not contain this field 
-        #             Q('match',**{'mining':False}), 
-        #             Q('match',**{'mined':False})  
-        #         ]  
-        #     )
+        query = Q ('bool',\
+                must=[ # Must not contain this field 
+                    Q('match',**{'mining':False}), 
+                    Q('match',**{'mined':False})  
+                ]  
+            )
         s = Search(using=self.es, index=self.status_index_name) \
+            .query(query)\
             .filter(id_filter)
-            # .query(query)\
-
         search_resp = s.execute()
         if len(search_resp.hits) == 0:
             return None
