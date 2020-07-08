@@ -2,6 +2,8 @@ from .core import ArxivDatabase
 from .elasticsearch import \
     ArxivElasticTextSearch,\
     ArxivElasticSeachDatabaseClient,\
+    DateAggregation,\
+    TermsAggregation,\
     TextSearchFilter,\
     SearchResults,\
     FIELD_MAPPING

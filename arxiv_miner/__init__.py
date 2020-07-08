@@ -30,7 +30,9 @@ from .database import \
         ArxivElasticTextSearch,\
         get_database_client,\
         SUPPORTED_DBS,\
-        FIELD_MAPPING
+        FIELD_MAPPING,\
+        TermsAggregation,\
+        DateAggregation
 
 from .scraping_engine import \
         DailyScrapingEngine,\

@@ -14,13 +14,14 @@ from ..exception import \
 try:
     import elasticsearch # Do a Safe Import Because of DataLayer Integration
     from elasticsearch.exceptions import NotFoundError
-    from elasticsearch_dsl import Search,Q
+    from elasticsearch_dsl import Search,Q,A
 except ImportError:
     raise ElasticsearchMissingException()
 
 import random
 import datetime
 import dateparser
+from typing import List
 
 DEFAULT_TIME_RANGE = 30
 from luqum.elasticsearch import ElasticsearchQueryBuilder
@@ -234,6 +235,7 @@ TEXT_HIGHLIGHT = [
 ]
 
 CATEGORY_FIELD_NAME = 'identity.categories.keyword'
+DATE_FIELD_NAME = 'identity.published'
 SOURCE_FIELDS = [
     'identity.*',
     'research_object.parsing_stats'
@@ -252,15 +254,15 @@ class TextSearchFilter:
                 # Date filter opt
                 start_date_key=None,\
                 end_date_key = None,\
-                date_filter_field = 'identity.published',\
+                date_filter_field = DATE_FIELD_NAME,\
                 #Category filter opt
                 category_filter_values =[],\
                 category_field = CATEGORY_FIELD_NAME,\
                 category_match_type= 'AND',\
                 # Sort Key And Ordee
-                sort_key='identity.published',
+                sort_key=DATE_FIELD_NAME,
                 sort_order='descending',\
-                # highlight opts
+                # highlight opts : Aggregation sets this as [] default. 
                 highlights = TEXT_HIGHLIGHT,\
                 highlight_fragments=10,
                 # Source fields,
@@ -415,10 +417,94 @@ class TextSearchFilter:
             search_obj = search_obj.highlight(highlight,fragment_size=self.highlight_fragments)
 
         # pagination happens here. 
-        page_start = self.page_size*(self.page_number-1)
-        page_end = self.page_size*(self.page_number)
-        search_obj = search_obj[page_start:page_end]
+        if self.page_size > 0:
+            page_start = self.page_size*(self.page_number-1)
+            page_end = self.page_size*(self.page_number)
+            search_obj = search_obj[page_start:page_end]
+        else:
+            search_obj = search_obj[:0]
 
+        return search_obj.to_dict()
+
+class Aggregation(TextSearchFilter):
+    """Aggregation 
+    Builds on TextSearchFilter to add aggregations for the filtered search. 
+    :param agg_name: Name sent to the aggregation bucket. 
+    """
+    def __init__(self,\
+                no_docs =True,\
+                agg_name = '',\
+                **kwargs):
+        super().__init__(highlights=[],**kwargs)
+        self.no_docs = no_docs
+        if agg_name == '':
+            raise Exception("Aggregation Name Needed")
+        self.agg_name = agg_name
+    
+    def query(self):
+        return super().query()
+    
+    @staticmethod
+    def transform_resp(doc_list:List[dict],metric_name='doc_count'):
+        arr = []
+        for doc in doc_list:
+            arr.append(dict(
+                key=doc['key'],
+                metric=doc[metric_name]
+            ))
+        return arr
+
+class DateAggregation(Aggregation):
+    
+    def __init__(self,\
+                calendar_interval= "day",
+                agg_name='date_distribution',
+                date_agg_field=DATE_FIELD_NAME,
+                time_zone= "America/Phoenix",
+                min_doc_count= 1,
+                **kwargs):
+        super().__init__(agg_name=agg_name,**kwargs)
+        self.search_dict = dict(
+            field  =date_agg_field,
+            calendar_interval = calendar_interval,
+            time_zone = time_zone,
+            min_doc_count = min_doc_count
+        )
+
+    def query(self):
+        query = super().query()
+        search_obj = Search.from_dict(query)
+        agg = A('date_histogram',**self.search_dict)
+        search_obj.aggs.bucket(self.agg_name,agg)
+        if self.no_docs:
+            search_obj = search_obj[:0]
+        return search_obj.to_dict()
+
+    @staticmethod
+    def transform_resp(doc_list:List[dict],metric_name='doc_count'):
+        arr = []
+        for doc in doc_list:
+            arr.append(dict(
+                key=dateparser.parse(doc['key_as_string']),
+                metric=doc[metric_name]
+            ))
+        return arr
+
+class TermsAggregation(Aggregation):
+    def __init__(self, \
+                field=CATEGORY_FIELD_NAME,\
+                agg_name = 'terms_aggregation',\
+                **kwargs):
+        super().__init__(agg_name=agg_name,**kwargs)
+        self.field = field
+
+    def query(self):
+        query = super().query()
+        search_obj = Search.from_dict(query)
+        agg = A('terms',field=self.field)
+        search_obj.aggs.bucket(self.agg_name,agg)
+        if self.no_docs:
+            search_obj = search_obj[:0]
         return search_obj.to_dict()
 
 
@@ -429,6 +515,7 @@ class SearchResults:
         self.identity =identity
         self.result_locations = result_locations
         self.num_results = num_results
+
 
 
 class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
@@ -462,4 +549,24 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
                     ))
         return response
             
-        
+    def text_aggregation(self,agg_obj:Aggregation):
+        """
+        Returns an aggregation of type : 
+        ```json
+            [{
+                "key" : "",
+                "metric" : ""
+            }]
+        ```
+        """
+        agg_query = agg_obj.query()
+        print(agg_query)
+        text_agg_res = Search.from_dict(agg_query)\
+                .using(self.es)\
+                .index(self.parsed_research_index_name)\
+                .execute()
+        response = []
+        # print(text_agg_res.agg)
+        aggregation_buckets = text_agg_res.aggregations.to_dict()[agg_obj.agg_name]['buckets']
+        return_buckets = agg_obj.transform_resp(aggregation_buckets)
+        return return_buckets

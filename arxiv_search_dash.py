@@ -1,3 +1,4 @@
+from typing import List
 import streamlit as st
 from config import Config
 import dateparser
@@ -7,9 +8,15 @@ from functools import wraps
 import arxiv_miner
 from arxiv_miner import \
         ArxivElasticTextSearch,\
+        TermsAggregation,\
+        DateAggregation,\
         TextSearchFilter,\
         SearchResults,\
-        FIELD_MAPPING
+        FIELD_MAPPING,\
+        COMPUTER_SCIENCE_TOPICS
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 import click
 import dateparser
@@ -49,11 +56,12 @@ class DataView():
             raise("Elastic Search Required For Text Based DB Search")
         st.title("CS ArXiv Semantic Search")
 
+        self.search_text = st.text_input("What Are you Looking For ?")
+        self.view_opt = st.sidebar.selectbox("View Options",['Search','Analytics'])
 
         st.sidebar.title("Search Options")
         
         self.db = database
-        self.search_text = st.text_input("What Are you Looking For ?")
         
         self.start_date = st.sidebar.date_input('From Date ?',(datetime.datetime.now()-datetime.timedelta(days=30)))
         self.end_date = st.sidebar.date_input('To Date ?',datetime.datetime.now(),max_value=datetime.datetime.now())
@@ -75,9 +83,86 @@ class DataView():
         else:
             self.text_filter_sections = []
         st.sidebar.markdown(APP_HELP_STR,unsafe_allow_html=True)
-        self._run_search()
 
-    # @st.cache(show_spinner=True,hash_funcs={list:id})
+        if self.view_opt == 'Analytics':
+            self._run_charts()
+        else:
+            self._run_search()
+        
+        # Make A Reading list. 
+    
+    def _run_charts(self):
+        fig2 =  go.Figure(
+            data=[self._run_date_distribution_chart()],
+            layout=go.Layout(
+                title=go.layout.Title(text="Date Distribution of Papers"),\
+                xaxis=go.layout.XAxis(title='Date'),\
+                yaxis=go.layout.YAxis(title='Articles Per %s'%self.choose_time_buckets(str(self.start_date),str(self.end_date)))\
+            )
+        )
+        st.plotly_chart(fig2)
+        fig = go.Figure(
+            data=[self._run_category_distribution_chart()],
+            layout=go.Layout(
+                title=go.layout.Title(text="Category Distribution Of the Domains")
+            )
+        )
+        st.plotly_chart(fig)
+
+    def _run_category_distribution_chart(self):
+        agg_resp = self.db.text_aggregation(
+            TermsAggregation(
+                string_match_query=self.search_text,\
+                text_filter_fields=self.text_filter_sections,\
+                start_date_key=str(self.start_date),\
+                end_date_key=str(self.end_date),\
+                category_filter_values=self.selected_topics,\
+                page_number=self.page_number,\
+                page_size=self.page_size,\
+            )
+        )
+        plot_x,plot_y = self._2d_plot_point_from_agg_metrics(agg_resp)
+        plot_x = [x if x not in COMPUTER_SCIENCE_TOPICS else COMPUTER_SCIENCE_TOPICS[x] for x in plot_x]
+        return go.Pie(labels=plot_x,values=plot_y)
+
+
+    def _run_date_distribution_chart(self):
+        agg_resp = self.db.text_aggregation(
+            DateAggregation(
+                string_match_query=self.search_text,\
+                text_filter_fields=self.text_filter_sections,\
+                start_date_key=str(self.start_date),\
+                end_date_key=str(self.end_date),\
+                category_filter_values=self.selected_topics,\
+                page_number=self.page_number,\
+                page_size=self.page_size,\
+                calendar_interval=self.choose_time_buckets(str(self.start_date),str(self.end_date)),\
+            )
+        )
+        plot_x,plot_y = self._2d_plot_point_from_agg_metrics(agg_resp)
+        return go.Bar(x=plot_x,y=plot_y)
+        
+
+    @staticmethod
+    def _2d_plot_point_from_agg_metrics(metrics_docs:List[dict]):
+        plot_x = []
+        plot_y = []
+        for metric in metrics_docs:
+            plot_x.append(metric['key'])
+            plot_y.append(metric['metric'])
+        return plot_x,plot_y
+
+    
+    @staticmethod
+    def choose_time_buckets(start_date,end_date):
+        time_delta = dateparser.parse(end_date) - dateparser.parse(start_date)
+        if time_delta.days > 180:
+            return "month"
+        if time_delta.days > 60:
+            return "week"
+        return "day"
+
+
     def get_db_data(self):
         search_resp = self.db.text_search(TextSearchFilter(
                 string_match_query=self.search_text,\
@@ -108,6 +193,10 @@ class DataView():
 
     @staticmethod
     def print_block(block:SearchResults):
+        # TODO : Add The following : 
+            # Show context Highlight. 
+            # Show Graph of Papers in the Time Period. 
+            # Show Graph of Search result data present distribution
         human_readable_date = dateparser.parse(block.identity.published).strftime("%d, %b %Y")
         # st.markdown(head_string,unsafe_allow_html=True)
         cats = [arxiv_miner.COMPUTER_SCIENCE_TOPICS[cat] if cat in arxiv_miner.COMPUTER_SCIENCE_TOPICS else cat for cat in block.identity.categories]
@@ -128,7 +217,7 @@ class DataView():
 
         total ='''
         <summary>
-        <h3>{title}</h3>
+        <a href={url} target="_blank"><h3>{title}</h3></a>
         <div>
         {cats_html}{date_html}<div style="display:inline-block">{url_tag}</div>
         </div>
@@ -146,7 +235,7 @@ class DataView():
                     url_tag=url_tag,\
                     cats_html=cats_html,\
                     date_html=date_html,\
-                    # url=block.identity.url,\
+                    url=block.identity.url,\
                     findings_html=findings_html,\
                     abstract=block.identity.abstract)
         # total = cats_html +date_html + details_html
