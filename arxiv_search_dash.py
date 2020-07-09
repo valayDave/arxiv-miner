@@ -25,7 +25,7 @@ from cli import database_choice,common_run_options
 DEFAULT_APP_NAME = 'ArXiv-Search-Dashboard'
 APP_HELP_STR = '''
 <summary>
-<i>Help</i>
+<h3>Product Help</h3>
 </summary>
 <details>
 <p>
@@ -38,7 +38,13 @@ ArXiv Contains Over 400K+ Opensource Research papers in Computer Science
 The purpose of this interface is to simplify search and give better Sematic context to the results of the search. 
 </p>
 <p>
+If you don't find results that work for you, Just try increasing thhe Date range. 
+</p>
+<p>
 'AND' ,'OR' , 'NOT', '()' are Reserved Keywords in the search text
+</p>
+<p>
+Bookmarks help collect all required content into one place for faster access. 
 </p>
 <p>
 Search Queries Can be of the free text form or of: 
@@ -46,6 +52,9 @@ Search Queries Can be of the free text form or of:
     <li> "deep learning" AND "data science" </li>
     <li> ("deep learning" AND "Transformer" ) OR ("Ensemble Learning")</li>
 </ul>
+</p>
+<p>
+You can bookmark the any article during a session and then access it <i>Bookmark</i> Tab in the <b>Product Features</b> Below 
 </p>
 <br/>
 '''
@@ -69,7 +78,8 @@ class DataView():
         self.bookmarker = get_bookmarker()
 
         self.search_text = st.text_input("What Are you Looking For ?")
-        self.view_opt = st.sidebar.selectbox("View Options",['Search','Analytics','Bookmarks'])
+        st.sidebar.markdown(APP_HELP_STR,unsafe_allow_html=True)
+        self.view_opt = st.sidebar.selectbox("Product Features",['Search','Analytics','Bookmarks'])
 
         st.sidebar.title("Search Options")
         
@@ -94,7 +104,6 @@ class DataView():
             self.text_filter_sections = st.sidebar.multiselect("Do you Want to Look Specifically in some section of the a Paper's Research ?",list(FIELD_MAPPING.keys()),None,lambda x: FIELD_MAPPING[x])
         else:
             self.text_filter_sections = []
-        st.sidebar.markdown(APP_HELP_STR,unsafe_allow_html=True)
 
         if self.view_opt == 'Analytics':
             self._run_charts()
