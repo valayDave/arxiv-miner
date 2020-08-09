@@ -41,25 +41,43 @@ def create_backup(\
         fg='green'
     )
     backup_time = str(int(time.time()))
-    json_save_path = os.path.join(root_path,backup_time)
+    raw_json_save_path = os.path.join(root_path,backup_time,'raw_research')
+    parsed_json_save_path = os.path.join(root_path,backup_time,'parsed_research')
+
     logger = create_logger('Data Transfer')
     database = ArxivElasticSeachDatabaseClient(Config.elasticsearch_index,host=host,port=port)
-    if not dir_exists(json_save_path):
-        os.makedirs(json_save_path)
+    if not dir_exists(raw_json_save_path):
+        os.makedirs(raw_json_save_path)
+    if not dir_exists(parsed_json_save_path):
+        os.makedirs(parsed_json_save_path)
+
     num_stored = 0
     logger.info("Starting Database Stream")
+  
     for rec in database.record_stream():
         arxiv_object = rec.to_json()
         rec_id = rec.identity.identity
         save_json_to_file(arxiv_object,os.path.join(
-            json_save_path,
+            raw_json_save_path,
             rec_id+'.json'
         ))
         num_stored+=1
         if num_stored % print_every == 0:
             logger.info("Flushed %d Records to FS "%num_stored)
+    
+    for rec in database.parsed_research_stream():
+        research_object = rec.to_json()
+        rec_id = rec.identity.identity
+        save_json_to_file(arxiv_object,os.path.join(
+            parsed_json_save_path,
+            rec_id+'.json'
+        ))
+        num_stored+=1
+        if num_stored % print_every == 0:
+            logger.info("Flushed %d Parsed Records to FS "%num_stored)
+    
 
-    tar_file_path  = os.path.join(root_path,backup_time+'.tar.gz')
+    tar_file_path  = os.path.join(root_path,'arxiv_db_'+backup_time+'.tar.gz')
     save_tar_file = tarfile.open(
         tar_file_path,
         'w:gz'
@@ -68,10 +86,9 @@ def create_backup(\
     os.chdir(
         root_path
     )
-    for name in os.listdir(backup_time):
-        save_tar_file.add(os.path.join(backup_time,name))
+    save_tar_file.add(backup_time)
     save_tar_file.close()
-    shutil.rmtree(json_save_path)
+    shutil.rmtree(os.path.join(root_path,backup_time))
 
 if __name__ == '__main__':
     create_backup()

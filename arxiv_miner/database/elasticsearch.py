@@ -202,8 +202,17 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
                             .query(Q())
         for hit in search_obj.scan():
             yield ArxivRecord.from_json(hit.to_dict())
-            
 
+    def parsed_research_stream(self):
+        """
+        Stream all Parsed Semantic Research from DB 
+        """
+        search_obj = Search(using=self.es, index=self.parsed_research_index_name)\
+                            .query(Q())
+        for hit in search_obj.scan():
+            yield ArxivSematicParsedResearch.from_json(hit.to_dict())
+
+        
     def archive(self):
         query = Q ()
         s = Search(using=self.es, index=self.status_index_name) \
