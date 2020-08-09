@@ -3,14 +3,14 @@ from .structure import *
 class ResearchPaper(object):
     def __init__(self,build_new=True):
         super().__init__()
-        self.introduction = Introduction()
-        self.related_works = RelatedWorks()
-        self.methodology = Methodology()
-        self.experiments = Experiments()
-        self.results = Results()
-        self.conclusion = Conclusion()
-        self.limitations = Limitations()
-        self.dataset = Dataset()
+        self.introduction = Introduction() # --> type(Section)
+        self.related_works = RelatedWorks() # --> type(Section)
+        self.methodology = Methodology() # --> type(Section)
+        self.experiments = Experiments() # --> type(Section)
+        self.results = Results() # --> type(Section)
+        self.conclusion = Conclusion() # --> type(Section)
+        self.limitations = Limitations() # --> type(Section)
+        self.dataset = Dataset() # --> type(Section)
         self.unknown_sections = []
         self.search_sections = []
         if build_new:

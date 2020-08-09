@@ -11,7 +11,7 @@ class Section():
     def __init__(self,name=None):
         # Core Attributes
         self.name = self.__class__.__name__ if name is None else name
-        self.subsections = []
+        self.subsections = [] # List[Sections]
         self.text = ''
     
     def to_markdown(self,tab_counter=0):

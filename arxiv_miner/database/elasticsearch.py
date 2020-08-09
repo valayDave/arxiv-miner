@@ -192,7 +192,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
     def set_semantic_parsed_research(self,record:ArxivSematicParsedResearch):
         self._save_semantic_parsed_research(record)
     
-    def record_stream(self):
+    def record_stream(self) -> ArxivRecord:
         """record_stream
         Stream All records from ES. 
         TODO : Make it filterable and Queryable in the future. 
@@ -525,8 +525,6 @@ class SearchResults:
         self.highlight_dict = highlight_dict
 
 
-
-
 class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     annotation_remove_keys = ['identity.','research_object.','.text']
 
@@ -575,7 +573,6 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
         ```
         """
         agg_query = agg_obj.query()
-        print(agg_query)
         text_agg_res = Search.from_dict(agg_query)\
                 .using(self.es)\
                 .index(self.parsed_research_index_name)\
