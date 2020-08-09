@@ -10,7 +10,14 @@ import time
 import os
 import tarfile
 import shutil
+import click
 
+BACKUP_HELP = '''
+
+The Purpose Of this Script is To Connect to ArxivElasticsearchDatabase,
+And create a Tar based Core ArxivRecord backup on FS.
+
+'''
 BASE_PATH = os.path.join(
                 os.path.dirname(\
                     os.path.abspath(__file__),\
@@ -18,12 +25,21 @@ BASE_PATH = os.path.join(
                 'backups'                
                 )
 
+@click.command(help=BACKUP_HELP)
+@click.option('--host', default=Config.get_db_defaults()['host'], help='ArxivElasticsearchDatabase Host')
+@click.option('--port', default=Config.get_db_defaults()['port'], help='ArxivElasticsearchDatabase Port')
+@click.option('--root_path',default=BASE_PATH,help='Default Path to Save information')
+@click.option('--print_every',default=100,help="Print Message After Saving X objects to FS")
 def create_backup(\
                 host = 'localhost',\
                 port = 9200,
                 root_path = BASE_PATH,
                 print_every=100,
                 ):
+    click.secho(
+        'Connecting To Elasticsearch on Host %s And Port %s'%(host,port),
+        fg='green'
+    )
     backup_time = str(int(time.time()))
     json_save_path = os.path.join(root_path,backup_time)
     logger = create_logger('Data Transfer')
