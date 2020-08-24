@@ -203,6 +203,12 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         for hit in search_obj.scan():
             yield ArxivRecord.from_json(hit.to_dict())
 
+    def id_stream(self,id_list):
+        for arxiv_id in id_list:
+            record_obj , _ = self._get_paper(paper_id=arxiv_id)
+            parsed_obj = self.get_semantic_parsed_research(paper_id=arxiv_id)
+            yield (arxiv_id,record_obj,parsed_obj)
+
     def parsed_research_stream(self):
         """
         Stream all Parsed Semantic Research from DB 

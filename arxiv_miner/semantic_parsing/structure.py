@@ -23,6 +23,21 @@ class Section():
         for subsection in self.subsections:
             hierarchy.append(subsection.to_markdown(tab_counter=tab_counter))
         return '\n'.join(hierarchy)
+    
+    def to_quoted_tags(self):
+        SPACE= ' '
+        QUOTE_SECTION='<SECTION>'
+        UNQUOTE_SECTION = '</SECTION>'
+        QUOTE_CONTENT='\n<CONTENT>\n'
+        UNQUOTE_CONTENT = '\n</CONTENT>\n'
+        # tab_counter+=1
+        # heading_val = HEADING*tab_counter if tab_counter <=3 else HEADING*3
+        hierarchy = [
+            QUOTE_SECTION+\
+                self.name+UNQUOTE_SECTION]+[QUOTE_CONTENT+self._clean_text(self.text)+UNQUOTE_CONTENT] if len(self.text) > 0 else []
+        for subsection in self.subsections:
+            hierarchy.append(subsection.to_quoted_tags())
+        return '\n'.join(hierarchy)
 
     @staticmethod
     def _clean_text(text):
@@ -31,7 +46,7 @@ class Section():
     def hierarchy_string(self,tab_counter=0):
         TAB = '\t'
         tab_counter+=1
-        hierarchy = [TAB*tab_counter+self.name+"("+str(len(self.text))+")"]
+        hierarchy = [TAB*tab_counter+self.name+"("+str(len(self.text.split(' ')))+")"]
         for subsection in self.subsections:
             hierarchy.append(subsection.hierarchy_string(tab_counter=tab_counter))
         return '\n'.join(hierarchy)
@@ -68,6 +83,15 @@ class Section():
         
     def __str__(self):
         return self.hierarchy_string()
+    
+    def flattened_sections(self):
+        flattened_arr = []
+        curr_sec = Section(name=self.name)
+        curr_sec.text=self.text
+        flattened_arr.append(curr_sec)
+        for subsection in self.subsections:
+            flattened_arr.extend(subsection.flattened_sections())
+        return flattened_arr
 
 
 class SemanticParsedSection(Section):
