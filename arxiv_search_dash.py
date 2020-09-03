@@ -76,6 +76,7 @@ class DataView():
         st.title("CS ArXiv Semantic Search")
          
         self.bookmarker = get_bookmarker()
+        self.db_search_text = ''
 
         self.search_text = st.text_input("What Are you Looking For ?")
         st.sidebar.markdown(APP_HELP_STR,unsafe_allow_html=True)
@@ -99,7 +100,14 @@ class DataView():
                                                     value=10,
                                                     step=10,
                                                     )
-
+        self.search_only_survey_papers = st.sidebar.checkbox('Only Search In Survey Papers')
+        if self.search_only_survey_papers:
+            if len(self.search_text) > 0:
+                self.db_search_text = self.search_text + 'AND (identity.title:"*survey*")'
+            else:
+                self.db_search_text = '(identity.title:"*survey*")'
+        else:
+            self.db_search_text = self.search_text
         if len(self.search_text) > 0:
             self.text_filter_sections = st.sidebar.multiselect("Do you Want to Look Specifically in some section of the a Paper's Research ?",list(FIELD_MAPPING.keys()),None,lambda x: FIELD_MAPPING[x])
         else:
@@ -143,7 +151,7 @@ class DataView():
     def _run_category_distribution_chart(self):
         agg_resp = self.db.text_aggregation(
             TermsAggregation(
-                string_match_query=self.search_text,\
+                string_match_query=self.db_search_text,\
                 text_filter_fields=self.text_filter_sections,\
                 start_date_key=str(self.start_date),\
                 end_date_key=str(self.end_date),\
@@ -160,7 +168,7 @@ class DataView():
     def _run_date_distribution_chart(self):
         agg_resp = self.db.text_aggregation(
             DateAggregation(
-                string_match_query=self.search_text,\
+                string_match_query=self.db_search_text,\
                 text_filter_fields=self.text_filter_sections,\
                 start_date_key=str(self.start_date),\
                 end_date_key=str(self.end_date),\
@@ -197,7 +205,7 @@ class DataView():
     def get_db_data(self):
         search_resp = get_db_data(self.db,\
                     TextSearchFilter(
-                        string_match_query=self.search_text,\
+                        string_match_query=self.db_search_text,\
                         text_filter_fields=self.text_filter_sections,\
                         start_date_key=str(self.start_date),\
                         end_date_key=str(self.end_date),\
@@ -220,9 +228,9 @@ class DataView():
             bookmarked = False
             if resp.identity.identity in self.bookmarker.hash_map:
                 bookmarked = True
-            bookmark_button_res,block_identity = self.print_block(resp,bookmarked=bookmarked)
+            bookmark_button_res,block_identity = self.print_block(resp,bookmarked=bookmarked,survey_paper_filter_enabled=self.search_only_survey_papers)
             if bookmark_button_res:
-                self.bookmarker.hash_map[block_identity] = {'response':resp,"searchterms":self.search_text}
+                self.bookmarker.hash_map[block_identity] = {'response':resp,"searchterms":self.db_search_text}
             else:
                 if resp.identity.identity in self.bookmarker.hash_map:
                     del self.bookmarker.hash_map[block_identity]
@@ -233,7 +241,7 @@ class DataView():
         return '<span class="badge {badge_structure} {badge_type}">'.format(badge_type=badge_type,badge_structure=badge_structure)+tag+'</span>'
 
     @staticmethod
-    def print_block(block:SearchResults,bookmarked=False,allow_bookmarking=True):
+    def print_block(block:SearchResults,bookmarked=False,allow_bookmarking=True,survey_paper_filter_enabled=False):
         # TODO : Add The following : 
             # TODO :Show context Highlight.
         human_readable_date = dateparser.parse(block.identity.published).strftime("%d, %b %Y")
@@ -245,7 +253,13 @@ class DataView():
         details_html = '<p>'+block.identity.abstract+'</p></details>'
         findings_html = ''
         if len(block.result_locations) > 0:
-            findings_html = '<i>Results Found in</i>&nbsp;&nbsp;'+'&nbsp;'.join([DataView.badge_it(cat,badge_type='badge-primary') for cat in block.result_locations])
+            if survey_paper_filter_enabled:
+                if len(block.result_locations) > 1:
+                    findings_html = '<i>Results Found in</i>&nbsp;&nbsp;'+'&nbsp;'.join([DataView.badge_it(cat,badge_type='badge-primary') for cat in block.result_locations])
+                else:
+                    findings_html = '<span></span>'
+            else:
+                findings_html = '<i>Results Found in</i>&nbsp;&nbsp;'+'&nbsp;'.join([DataView.badge_it(cat,badge_type='badge-primary') for cat in block.result_locations])
         else:
             findings_html = '<span></span>'
 
@@ -254,6 +268,10 @@ class DataView():
 
         highlight_print_str = ''
         for key in  block.highlight_dict.keys():
+            # survey Filter 
+            if survey_paper_filter_enabled:
+                if 'survey' in str.lower(' '.join(block.highlight_dict[key])):
+                    continue
             head_str = '<p><b><i>{highlight_heading}<b><i></p>'.format(highlight_heading=key)
             list_str = '<ul>'+''.join(['<li>'+val.replace('#','').replace('\n','').strip()+'</li>' for val in block.highlight_dict[key]])+'</ul>'
             highlight_print_str+= head_str+list_str
