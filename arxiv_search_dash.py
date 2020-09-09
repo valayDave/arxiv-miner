@@ -103,7 +103,7 @@ class DataView():
         self.search_only_survey_papers = st.sidebar.checkbox('Only Search In Survey Papers')
         if self.search_only_survey_papers:
             if len(self.search_text) > 0:
-                self.db_search_text = self.search_text + 'AND (identity.title:"*survey*" OR identity.title:"*a review*")'
+                self.db_search_text =  f'({self.search_text}) AND (identity.title:"*survey*" OR identity.title:"*a review*")'
             else:
                 self.db_search_text = '(identity.title:"*survey*" OR identity.title:"*a review*")'
         else:
