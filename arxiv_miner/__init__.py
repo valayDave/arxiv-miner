@@ -1,5 +1,12 @@
-from .paper import ArxivPaper
-from .symantic_parsing import ArxivDocument,Section
+from .paper import \
+        ArxivPaper,\
+        ResearchPaperFactory
+        
+from .semantic_parsing import\
+        ArxivDocument,\
+        Section,\
+        ResearchPaper,\
+        ResearchPaperSematicParser
 
 from .loader import \
     ArxivLoader,\
@@ -11,14 +18,21 @@ from .record import \
     ArxivLatexParsingResult,\
     ArxivPaperProcessingMeta,\
     ArxivRecord,\
-    ArxivPaperStatus
+    ArxivPaperStatus,\
+    ArxivSematicParsedResearch
 
 from .database import \
         ArxivFSDatabaseService,\
         ArxivDatabaseServiceClient,\
         ArxivElasticSeachDatabaseClient,\
+        TextSearchFilter,\
+        SearchResults,\
+        ArxivElasticTextSearch,\
         get_database_client,\
-        SUPPORTED_DBS
+        SUPPORTED_DBS,\
+        FIELD_MAPPING,\
+        TermsAggregation,\
+        DateAggregation
 
 from .scraping_engine import \
         DailyScrapingEngine,\
@@ -28,3 +42,5 @@ from .scraping_engine import \
         MassHarvestationProcess
         
 from .mining_engine import MiningProcess
+
+from .constants import *

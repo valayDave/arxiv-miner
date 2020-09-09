@@ -10,3 +10,14 @@ db.p
 .DS_Store
 opendetex*/
 DummyData/
+Pdf_parsing_Test/
+new_data/
+mining_data/
+devops/
+Important_Notes.md
+lapdftext
+*.egg-info
+throughput_sim/
+tests
+backups/
+.metaflow/

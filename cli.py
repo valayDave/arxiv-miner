@@ -29,7 +29,18 @@ def common_run_options(func):
 @common_run_options
 @click.pass_context
 def db_cli(ctx,datastore,use_defaults,host,port,app_name=DEFAULT_APP_NAME):
-    ctx.obj = {}
+    ctx.obj = {}    
+    args , client_class = database_choice(datastore,use_defaults,host,port)
+    print_str = '\n %s Process Using %s Datastore'%(app_name,datastore)
+    args_str = ''.join(['\n\t'+ i + ' : ' + str(args[i]) for i in args])
+    click.secho(print_str,fg='green',bold=True)
+    click.secho(args_str+'\n\n',fg='magenta')
+    arxiv_database = client_class(**args)
+    ctx.obj['db_class'] = client_class
+    ctx.obj['db_args'] = args
+
+
+def database_choice(datastore,use_defaults,host,port):
     # get_database_client will raise error if some-one feeds BS DB
     client_class = get_database_client(datastore)
     if datastore == 'fs':
@@ -42,16 +53,7 @@ def db_cli(ctx,datastore,use_defaults,host,port,app_name=DEFAULT_APP_NAME):
             args = Config.get_defaults('elasticsearch')
         else:
             args = dict(index_name=Config.elasticsearch_index,host=host,port=port)
-        
-    
-    print_str = '\n %s Process Using %s Datastore'%(app_name,datastore)
-    args_str = ''.join(['\n\t'+ i + ' : ' + str(args[i]) for i in args])
-    click.secho(print_str,fg='green',bold=True)
-    click.secho(args_str+'\n\n',fg='magenta')
-    arxiv_database = client_class(**args)
-    ctx.obj['db_class'] = client_class
-    ctx.obj['db_args'] = args
-
+    return args, client_class
 
 if __name__ == '__main__':
     db_cli()

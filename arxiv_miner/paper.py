@@ -6,10 +6,28 @@ import tarfile
 from typing import List,Tuple
 import datetime
 from .exception import *
-from .utils import dir_exists,save_json_to_file,load_json_from_file
-from .symantic_parsing import ArxivDocument,Section
-from .latex_parser import get_tex_tree,split_match,LatexInformationParser
-from .record import ArxivIdentity,ArxivLatexParsingResult,ArxivPaperProcessingMeta,ArxivRecord
+
+from .utils import \
+    dir_exists,\
+    save_json_to_file,\
+    load_json_from_file
+
+from .semantic_parsing import \
+    ArxivDocument,\
+    Section,\
+    ResearchPaper,\
+    ResearchPaperSematicParser
+
+from .latex_parser import \
+    get_tex_tree,\
+    split_match,\
+    LatexInformationParser
+
+from .record import \
+    ArxivIdentity,\
+    ArxivLatexParsingResult,\
+    ArxivPaperProcessingMeta,\
+    ArxivRecord
 
 class ArxivPaper(ArxivRecord):
     """ArxivPaper
@@ -476,3 +494,30 @@ class ArxivLatexParser():
         sectionised_data = ArxivDocument(name=self.parsing_result_name,**paper.identity_meta)
         sectionised_data.subsections = result.section_list
         return sectionised_data
+
+
+class ResearchPaperFactory:
+    """ 
+    Given Raw Unstructured `Section`ised documents, 
+    Create a research paper Object from the document.
+    """
+    @staticmethod
+    def from_arxiv_record(paper:ArxivRecord):
+        if paper is None:
+            raise Exception("`ArxivRecord` Cannot Be None")
+        
+        if paper.latex_parsed_document is None:
+            return ResearchPaperSematicParser([])\
+                .to_research_paper()
+
+        found_subsections = paper.latex_parsed_document.subsections
+        if len(found_subsections) == 0 :
+            return ResearchPaperSematicParser([])\
+                .to_research_paper()
+
+        research_doc = \
+                ResearchPaperSematicParser(found_subsections)\
+                .to_research_paper()
+        
+        return research_doc
+        

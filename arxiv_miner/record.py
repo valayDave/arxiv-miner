@@ -6,7 +6,10 @@ pipeline.
 import datetime
 import dateparser
 from .scraper import Record
-from .symantic_parsing import ArxivDocument
+from .semantic_parsing import \
+    ArxivDocument,\
+    ResearchPaper
+
 from .utils import load_json_from_file,dir_exists
 from .exception import ArxivIdentityNotFoundException,CorruptArxivRecordException
 
@@ -268,6 +271,43 @@ class ArxivRecord(object):
             created_on= json_object['created_on']
         )
 
+class ArxivSematicParsedResearch:
+
+    research_object:ResearchPaper
+    identity:ArxivIdentity
+
+    def __init__(self,\
+            identity=None,\
+            research_object=None,\
+            created_on = None
+            ):
+        self.identity = identity
+        self.research_object = research_object
+        if created_on is None:
+            created_on = datetime.datetime.now().isoformat()
+        self.created_on =dateparser.parse(str(created_on))# .isoformat()
+    
+    def to_json(self):
+        return {
+            'identity': self.identity.to_json(),
+            'research_object': self.research_object.to_json(),
+            'parsing_stats': self.research_object.parsing_results,
+            'created_on' : self.created_on.isoformat()
+        }
+    
+    @classmethod
+    def from_json(cls,json_object):
+        if 'identity' not in json_object:
+            raise CorruptArxivRecordException()
+        identity = ArxivIdentity(**json_object['identity'])
+        research_object = ResearchPaper.from_json(json_object['research_object']) 
+        return cls(\
+                identity=identity,\
+                research_object=research_object,\
+                created_on= json_object['created_on']
+            )
+
+
 class ArxivPaperStatus:
     """ 
     This Record will help mark different stages of the 
@@ -287,6 +327,7 @@ class ArxivPaperStatus:
         # Latex Mining Status
         self.mined = mined
         self.mining = mining
+
         if updated_on is None:
             updated_on = datetime.datetime.now().isoformat()
 

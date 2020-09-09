@@ -11,8 +11,9 @@ import time
 from multiprocessing import Process,Event
 from expiringdict import ExpiringDict
 from signal import signal, SIGINT
-from .record import ArxivIdentity
+from .record import ArxivIdentity,ArxivRecord,ArxivSematicParsedResearch
 from .database import ArxivDatabase
+from .paper import ResearchPaperFactory
 from .logger import create_logger
 from .scraper import Scraper
 '''
@@ -21,9 +22,8 @@ How Will Scraping Take Place. ?
     2. Outside Cron Will Control this bound object. 
     3. Bound Object will Scrape Information : 
         - Create Identities
-        - Verify Existance in Database / Add to DB --> Identity Created in DB will be used by the Miner
+        - Verify Existance in Database / Add to DB --> Identity With SemanticParsedResearch will be Created in DB will be used by the Miner
     4. 
-
 '''
 CLASSES = [
     {'name': 'Computer Science', 'code': 'cs'},
@@ -115,12 +115,20 @@ class ScrapingEngine:
             return False
         db_retrieved_identity = self.db.query(oa2_record['id'])
         if db_retrieved_identity: # If we can find the Doc in DB then continue as there is no more need to check/Add
+            self.update_cache(db_retrieved_identity.identity)
             return False
         
         # There was nothing in the DB so we create Identity. 
         retrieved_identity = ArxivIdentity.from_oa2_response(oa2_record)
         self.db.save_identity(retrieved_identity)
         self.update_cache(retrieved_identity.identity)
+        # Save Semantic parsed result too. It will be used 
+        self.db.set_semantic_parsed_research(\
+            ArxivSematicParsedResearch(\
+                identity=retrieved_identity,\
+                research_object=ResearchPaperFactory.from_arxiv_record(ArxivRecord(identity=retrieved_identity))\
+            )\
+        )
         return True
 
 class DailyScrapingEngine(ScrapingEngine):
