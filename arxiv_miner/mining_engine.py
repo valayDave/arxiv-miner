@@ -112,7 +112,7 @@ class SourceHarvestingEngine:
                 download_path = self.harvest_one(arxiv_id)
                 harvest_papers_paths.append((arxiv_id,download_path))
             except Exception as e: # Upon exception. Try 3 times by adding it back to list. If still Failure then dont use it. 
-                self.logger.error(f"Latex Download {str(e)} For ID {arxiv_id}. Will be Sleeping for {error_sleep_time}")
+                self.logger.error(f"Latex Download {str(e)} For ID {arxiv_id}. Will be Sleeping for {self.error_sleep_time}")
                 if arxiv_id in retry_map:
                     if retry_map[arxiv_id] > 3:
                         continue 
