@@ -21,6 +21,10 @@ class Config(object):
     detex_path = os.path.abspath('./detex')
     mining_data_path = os.path.abspath('./mining_data/papers')
 
+    # Object Store 
+    bucket_name = 'arxiv-papers-source-bucket'
+    
+
     @classmethod
     def get_defaults(cls,db_str):
         if db_str == 'elasticsearch':
