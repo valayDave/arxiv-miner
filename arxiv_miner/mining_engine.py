@@ -89,12 +89,13 @@ class SourceHarvestingEngine:
     Args : 
         id_list : List[str] : list of strings that will be used for the 
     """
-    def __init__(self,id_list:List[str],data_root_path,error_sleep_time=5):
+    def __init__(self,id_list:List[str],data_root_path,error_sleep_time=5,scrape_sleep_time=3):
         super().__init__()
         self.id_list = id_list
         self.data_root_path = data_root_path
         self.logger = create_logger(self.__class__.__name__+"__"+random_string())
         self.error_sleep_time = error_sleep_time
+        self.scrape_sleep_time = scrape_sleep_time
 
     def harvest_one(self,arxiv_id:str):
         paper = ArxivPaper(arxiv_id,self.data_root_path,build_paper=False)
@@ -111,6 +112,7 @@ class SourceHarvestingEngine:
             try:
                 download_path = self.harvest_one(arxiv_id)
                 harvest_papers_paths.append((arxiv_id,download_path))
+                time.sleep()
             except Exception as e: # Upon exception. Try 3 times by adding it back to list. If still Failure then dont use it. 
                 self.logger.error(f"Latex Download {str(e)} For ID {arxiv_id}. Will be Sleeping for {self.error_sleep_time}")
                 if arxiv_id in retry_map:
