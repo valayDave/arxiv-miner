@@ -32,7 +32,8 @@ from .database import \
         SUPPORTED_DBS,\
         FIELD_MAPPING,\
         TermsAggregation,\
-        DateAggregation
+        DateAggregation,\
+        DATE_FIELD_NAME
 
 from .scraping_engine import \
         DailyScrapingEngine,\

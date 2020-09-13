@@ -39,7 +39,8 @@ def get_chunk_from_s3(sample=None):
     s3_obj_locs = s3_client.list_objects_v2(Bucket=BUCKET_NAME,Prefix=ID_LIST_PREFIX)
     if len(s3_obj_locs['Contents']) == 0:
         raise Exception("No Contents Left In Bucket")
-    download_object_key = s3_obj_locs['Contents'][0]['Key'] # get first object key
+    selected_key = random.choice(s3_obj_locs['Contents'])
+    download_object_key = selected_key['Key'] # get A random key
     boto_resp = s3_client.get_object(Bucket=BUCKET_NAME,Key=download_object_key)
     logger.info(f"Extracted Chunk From S3: {download_object_key}")
     id_list_json = json.loads(boto_resp['Body'].read()) # Download and save the object to Memory

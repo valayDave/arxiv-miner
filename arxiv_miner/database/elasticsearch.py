@@ -22,6 +22,7 @@ import random
 import datetime
 import dateparser
 from typing import List
+import json
 
 DEFAULT_TIME_RANGE = 30
 from luqum.elasticsearch import ElasticsearchQueryBuilder
@@ -297,8 +298,9 @@ class TextSearchFilter:
         self.date_filter = self._date_query(start_date_key,end_date_key,date_range_key=date_filter_field)
         self.category_filter = self._category_filter(category_filter_values,category_field,match_type=category_match_type)
         self.sort_key = sort_key
-        if self.sort_key is not None : 
-            self.sort_key = '-'+self.sort_key if sort_order == 'descending' else self.sort_key
+        self.sort_order = sort_order
+        # if self.sort_key is not None : 
+        #     self.sort_key = '-'+self.sort_key if sort_order == 'descending' else self.sort_key
         self.highlights = highlights
         self.highlight_fragments =highlight_fragments
         self.page_number = page_number
@@ -436,7 +438,11 @@ class TextSearchFilter:
         
         # Sort key setting
         if self.sort_key is not None:
-            search_obj = search_obj.query(quer).sort(self.sort_key)
+            order = dict()
+            order[self.sort_key] = dict(
+                    order='desc' if self.sort_order=='descending' else 'asc'
+            )
+            search_obj = search_obj.query(quer).sort(order)
         
         # Highlight setting
         for highlight in self.highlights:
@@ -453,7 +459,8 @@ class TextSearchFilter:
 
         if len(self.source_fields) > 0 :
             search_obj = search_obj.source(includes=self.source_fields)
-
+            
+        print(json.dumps(search_obj.to_dict(),indent=4))
         return search_obj.to_dict()
 
 class Aggregation(TextSearchFilter):
