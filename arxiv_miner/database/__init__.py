@@ -6,7 +6,8 @@ from .elasticsearch import \
     TermsAggregation,\
     TextSearchFilter,\
     SearchResults,\
-    FIELD_MAPPING
+    FIELD_MAPPING,\
+    DATE_FIELD_NAME
 
 from .filesystem import ArxivFSDatabase
 from .proxy_service import \

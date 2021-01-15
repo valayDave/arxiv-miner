@@ -22,6 +22,7 @@ import random
 import datetime
 import dateparser
 from typing import List
+import json
 
 DEFAULT_TIME_RANGE = 30
 from luqum.elasticsearch import ElasticsearchQueryBuilder
@@ -283,24 +284,28 @@ class TextSearchFilter:
                 sort_order='descending',\
                 # highlight opts : Aggregation sets this as [] default. 
                 highlights = TEXT_HIGHLIGHT,\
-                highlight_fragments=60,
+                highlight_fragments=60,\
                 # Source fields,
-                source_fields=SOURCE_FIELDS,\
+                source_fields=[],\
                 # Page settings 
                 page_size=10,\
-                page_number=1
+                page_number=1,
+                scan=False# Full Dataset Traversal key # If scan==True, then no Pagination else paaginate
                 ):
         
         self.text_search_query = self._text_search_query(string_match_query,text_filter_fields)
         self.date_filter = self._date_query(start_date_key,end_date_key,date_range_key=date_filter_field)
         self.category_filter = self._category_filter(category_filter_values,category_field,match_type=category_match_type)
         self.sort_key = sort_key
-        if self.sort_key is not None : 
-            self.sort_key = '-'+self.sort_key if sort_order == 'descending' else self.sort_key
+        self.sort_order = sort_order
+        # if self.sort_key is not None : 
+        #     self.sort_key = '-'+self.sort_key if sort_order == 'descending' else self.sort_key
         self.highlights = highlights
         self.highlight_fragments =highlight_fragments
         self.page_number = page_number
         self.page_size = page_size
+        self.source_fields = source_fields
+        self.scan = scan
         # self.sort_order = sort_order
     
     def __hash__(self): # For UI required Hashing to identify uniqueness of input. 
@@ -432,20 +437,28 @@ class TextSearchFilter:
         
         # Sort key setting
         if self.sort_key is not None:
-            search_obj = search_obj.query(quer).sort(self.sort_key)
-        
+            order = dict()
+            order[self.sort_key] = dict(
+                    order='desc' if self.sort_order=='descending' else 'asc'
+            )
+            search_obj = search_obj.query(quer).sort(order)
         # Highlight setting
         for highlight in self.highlights:
             search_obj = search_obj.highlight(highlight,fragment_size=self.highlight_fragments)
 
-        # pagination happens here. 
-        if self.page_size > 0:
-            page_start = self.page_size*(self.page_number-1)
-            page_end = self.page_size*(self.page_number)
-            search_obj = search_obj[page_start:page_end]
+        if not self.scan:
+            # pagination happens here if no scan
+            if self.page_size > 0:
+                page_start = self.page_size*(self.page_number-1)
+                page_end = self.page_size*(self.page_number)
+                search_obj = search_obj[page_start:page_end]
         else:
             search_obj = search_obj[:0]
 
+        if len(self.source_fields) > 0 :
+            search_obj = search_obj.source(includes=self.source_fields)
+            
+        print(json.dumps(search_obj.to_dict(),indent=4))
         return search_obj.to_dict()
 
 class Aggregation(TextSearchFilter):
@@ -545,6 +558,15 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
 
     def __init__(self, index_name=None, host='localhost', port=9200):
         super().__init__(index_name=index_name, host=host, port=port)
+
+    def text_search_scan(self,filter_obj:TextSearchFilter):
+        search_query = filter_obj.query()
+        
+        search_generator = Search.from_dict(search_query)\
+                            .using(self.es)\
+                            .index(self.index_name)
+        
+        return search_generator
     
     def text_search(self,filter_obj:TextSearchFilter):
         # print(filter_obj.query())

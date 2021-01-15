@@ -39,7 +39,7 @@ class ArxivPaper(ArxivRecord):
     This is the Processing Object responsible for building the 
     arxiv Processed Information. 
 
-    This class can Should be Child class of ArxivRecord. 
+    This class is a Child class of ArxivRecord. 
 
     :param `paper_id` : id of the Arxiv Paper. Eg. : 1904.03367
     :param `root_papers_path` : Path to directory of papers. 
@@ -193,7 +193,7 @@ class ArxivPaper(ArxivRecord):
         if self.paper_processing_meta.mined:
             if len(self.latex_parsing_result.section_list) > 0:
                 self.paper_processing_meta.latex_parsed = True
-   
+
     def _build_paper(self,save_data=True,store_latex=False):
         """_build_paper 
         Download's The Tex Version of the Paper and saves it to folder. 
@@ -221,16 +221,39 @@ class ArxivPaper(ArxivRecord):
             tar.extractall(path=self.latex_root_path)
 
         # $ Remove the Tar File.
-        os.remove(downloaded_data)
+        if not store_latex:
+            os.remove(downloaded_data)
         # $ Save the Metadata
         self._extract_info_from_latex()
 
-        if not store_latex:
-            shutil.rmtree(self.latex_root_path)
+        shutil.rmtree(self.latex_root_path) # remove Latex source data.
         # print("Extracted Latex Data")
         if save_data:
             self.to_fs()
-    
+
+    ############ Public Facing Core Methods for Data Processing Methods for Latex ############
+    def download_latex(self):
+        """download_latex 
+        Downloads latex from arxiv as a tar file in the `self.paper_root_path`. 
+        Ideally called seperately from the `mine_paper` method or from the ArxivPaper(build_paper=True)
+
+        It will just download the latex tar source. 
+        :raises ArxivAPIException: Arxiv showed the finger. 
+        :return: [str] path of the downloaded tar file 
+        """
+        try:
+            # $ Set the Arxiv Object to ensure Proper extraction
+            identity,paper = self.extract_meta_from_remote(self.paper_id)
+            self.identity = identity
+
+            if not dir_exists(self.paper_root_path):
+                os.makedirs(self.paper_root_path)
+            # $ Download the paper. 
+            downloaded_data = arxiv.download(paper,dirpath=self.paper_root_path,slugify=lambda paper: paper.get('id').split('/')[-1],prefer_source_tarfile=True)
+            return downloaded_data
+        except Exception as e:
+            raise ArxivAPIException(self.paper_id,str(e))
+        
     def mine_paper(self,store_latex=False):
         """mine_paper 
         This is an Exposed Method which will help mine LateX For the Paper
@@ -238,6 +261,7 @@ class ArxivPaper(ArxivRecord):
         """
         self._build_paper(save_data=False,store_latex=store_latex)
 
+    
     ############  ############ ############ ############ ############ ############ ############
     ############  Methods to create/store Processing Object from/to FS for DB level Processes ############
     

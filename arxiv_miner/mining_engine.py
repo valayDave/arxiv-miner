@@ -17,6 +17,7 @@ from multiprocessing import Process,Event
 from signal import signal, SIGINT
 import random
 import string
+from typing import List
 
 def random_string(stringLength=8):
     letters = string.ascii_lowercase
@@ -80,6 +81,53 @@ class MiningEngine:
         return paper_record,paper_mined
 
 
+class SourceHarvestingEngine:
+    """ 
+    Run as Isolated Process 
+        - Given a List of Ids, It will download the Tar source and Put it into a folder. Otherwise it will wait for arxiv to Forgive :) 
+
+    Args : 
+        id_list : List[str] : list of strings that will be used for the 
+    """
+    def __init__(self,id_list:List[str],data_root_path,error_sleep_time=5,scrape_sleep_time=3):
+        super().__init__()
+        self.id_list = id_list
+        self.data_root_path = data_root_path
+        self.logger = create_logger(self.__class__.__name__+"__"+random_string())
+        self.error_sleep_time = error_sleep_time
+        self.scrape_sleep_time = scrape_sleep_time
+
+    def harvest_one(self,arxiv_id:str):
+        paper = ArxivPaper(arxiv_id,self.data_root_path,build_paper=False)
+        download_path = paper.download_latex()
+        return download_path
+
+    def harvest(self):
+        harvest_papers_paths = []
+        retry_map = {
+
+        }
+        while len(self.id_list) > 0:
+            arxiv_id = self.id_list.pop()
+            try:
+                download_path = self.harvest_one(arxiv_id)
+                harvest_papers_paths.append((arxiv_id,download_path))
+                time.sleep(self.scrape_sleep_time)
+            except Exception as e: # Upon exception. Try 3 times by adding it back to list. If still Failure then dont use it. 
+                self.logger.error(f"Latex Download {str(e)} For ID {arxiv_id}. Will be Sleeping for {self.error_sleep_time}")
+                if arxiv_id in retry_map:
+                    if retry_map[arxiv_id] > 3:
+                        continue 
+                    else:
+                        retry_map[arxiv_id]+=1
+                        self.id_list.append(arxiv_id)
+                else:
+                    retry_map[arxiv_id]=1
+                    self.id_list.append(arxiv_id)
+                time.sleep(self.error_sleep_time)
+        
+        return harvest_papers_paths
+        
 class MiningProcess(Process,MiningEngine):
     def __init__(self,
             database:ArxivDatabase,\

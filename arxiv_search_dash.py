@@ -13,6 +13,7 @@ from arxiv_miner import \
         TextSearchFilter,\
         SearchResults,\
         FIELD_MAPPING,\
+        DATE_FIELD_NAME,\
         COMPUTER_SCIENCE_TOPICS
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
@@ -73,6 +74,11 @@ class DataView():
         super().__init__()
         if type(database) != ArxivElasticTextSearch:
             raise("Elastic Search Required For Text Based DB Search")
+        sort_keys = [
+            dict(name='Recency',value=DATE_FIELD_NAME),
+            dict(name='Relevance',value='_score')
+
+        ]
         st.title("CS ArXiv Semantic Search")
          
         self.bookmarker = get_bookmarker()
@@ -86,8 +92,10 @@ class DataView():
         
         self.db = database
         
-        self.start_date = st.sidebar.date_input('From Date ?',(datetime.datetime.now()-datetime.timedelta(days=30)))
+        self.start_date = st.sidebar.date_input('From Date ?',(datetime.datetime.now()-datetime.timedelta(days=2000)))
         self.end_date = st.sidebar.date_input('To Date ?',datetime.datetime.now(),max_value=datetime.datetime.now())
+        self.sort_key = st.sidebar.selectbox('Sort Your Results By',sort_keys,format_func=lambda x:x['name'])['value']
+
         topics = arxiv_miner.get_cs_topics()
         self.selected_topics = st.sidebar.multiselect("Select CS Topics To Look For :",topics,None,lambda x:arxiv_miner.COMPUTER_SCIENCE_TOPICS[x])
         self.page_number = st.sidebar.number_input('Page Number',
@@ -100,7 +108,10 @@ class DataView():
                                                     value=10,
                                                     step=10,
                                                     )
+        
+        
         self.search_only_survey_papers = st.sidebar.checkbox('Only Search In Survey Papers')
+        
         if self.search_only_survey_papers:
             if len(self.search_text) > 0:
                 self.db_search_text =  f'({self.search_text}) AND (identity.title:"*survey*" OR identity.title:"*a review*")'
@@ -211,7 +222,8 @@ class DataView():
                         end_date_key=str(self.end_date),\
                         category_filter_values=self.selected_topics,\
                         page_number=self.page_number,\
-                        page_size=self.page_size
+                        page_size=self.page_size,
+                        sort_key=self.sort_key
                     )
                 )
         return search_resp
