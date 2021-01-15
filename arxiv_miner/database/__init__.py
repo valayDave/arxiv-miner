@@ -4,6 +4,7 @@ from .elasticsearch import \
     ArxivElasticSeachDatabaseClient,\
     DateAggregation,\
     TermsAggregation,\
+    CategoryFilterItem,\
     TextSearchFilter,\
     SearchResults,\
     FIELD_MAPPING,\

@@ -18,11 +18,13 @@ try:
 except ImportError:
     raise ElasticsearchMissingException()
 
+from typing import List
 import random
 import datetime
 import dateparser
 from typing import List
 import json
+from dataclasses import dataclass,field
 
 DEFAULT_TIME_RANGE = 30
 from luqum.elasticsearch import ElasticsearchQueryBuilder
@@ -260,6 +262,13 @@ SOURCE_FIELDS = [
     'identity.*',
     'research_object.parsing_stats'
 ]
+
+@dataclass
+class CategoryFilterItem:
+    field_name:str = CATEGORY_FIELD_NAME
+    match_type:str = 'AND'
+    filter_values: list = field(default_factory=list)
+
 class TextSearchFilter:
     """ 
     Used With the parsed Research index to quickly find and highlight data. 
@@ -275,7 +284,8 @@ class TextSearchFilter:
                 start_date_key=None,\
                 end_date_key = None,\
                 date_filter_field = DATE_FIELD_NAME,\
-                #Category filter opt
+                #Category filter :CategoryFilterItem  : use category_filter or category_filter_values,category_field,category_match_type
+                category_filter = [],\
                 category_filter_values =[],\
                 category_field = CATEGORY_FIELD_NAME,\
                 category_match_type= 'AND',\
@@ -295,7 +305,10 @@ class TextSearchFilter:
         
         self.text_search_query = self._text_search_query(string_match_query,text_filter_fields)
         self.date_filter = self._date_query(start_date_key,end_date_key,date_range_key=date_filter_field)
-        self.category_filter = self._category_filter(category_filter_values,category_field,match_type=category_match_type)
+        if category_filter and len(category_filter) > 0:
+            self.category_filter = self._category_filter(category_filter)
+        else:
+            self.category_filter = self._subcategory_filter(category_filter_values,category_field,match_type=category_match_type)
         self.sort_key = sort_key
         self.sort_order = sort_order
         # if self.sort_key is not None : 
@@ -311,15 +324,35 @@ class TextSearchFilter:
     def __hash__(self): # For UI required Hashing to identify uniqueness of input. 
         return hash(''.join([str(v) for v in list(self.__dict__.values())]))
 
+
+    def _category_filter(self,category_filter_items:List[CategoryFilterItem]):
+        combined_query = None
+        print('New _category_filters',category_filter_items)
+        if len(category_filter_items) == 0:
+            return combined_query
+        for cat in category_filter_items:
+            for fv in cat.filter_values:
+                ph = dict()
+                ph[cat.field_name] = fv
+                if combined_query is None: 
+                    combined_query = Q('match_phrase',**ph)
+                else:
+                    if cat.match_type == 'AND':
+                        combined_query = combined_query & Q('match_phrase',**ph)
+                    else:
+                        combined_query = combined_query | Q('match_phrase',**ph)                
+        return combined_query.to_dict()
+
+
     @staticmethod
-    def _category_filter(category_filter_values,category_field,match_type='AND'):
+    def _subcategory_filter(category_filter_values,category_field,match_type='AND'):
         combined_query = None
         if category_field is None or category_filter_values is None:
             return combined_query
         if len(category_filter_values) == 0:
             return combined_query
         # phrase_matches = []
-        combined_query
+        # combined_query
         for cat in category_filter_values:
             ph = dict()
             ph[category_field] = cat

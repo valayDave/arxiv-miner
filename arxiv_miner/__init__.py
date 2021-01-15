@@ -27,6 +27,7 @@ from .database import \
         ArxivElasticSeachDatabaseClient,\
         TextSearchFilter,\
         SearchResults,\
+        CategoryFilterItem,\
         ArxivElasticTextSearch,\
         get_database_client,\
         SUPPORTED_DBS,\
