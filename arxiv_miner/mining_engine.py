@@ -6,11 +6,13 @@ The Mining Engine on Instantiation
                 --> Download Latex 
                 --> Parse Latex 
                 --> Sematically Parse the Paper here too. 
+                --> Mining Ontology Here Too
 """
 from .database import ArxivDatabase
-from .record import ArxivRecord,ArxivIdentity,ArxivSematicParsedResearch
+from .record import ArxivRecord,ArxivIdentity,ArxivSematicParsedResearch,Ontology
 from .logger import create_logger
 from .exception import ArxivAPIException
+from .ontology_miner import OntologyMiner
 from .paper import ArxivPaper,ResearchPaperFactory
 import time
 from multiprocessing import Process,Event
@@ -67,14 +69,20 @@ class MiningEngine:
         
         self.logger.info("Mining Paper %s"%paper_record.identity.identity)
         paper_obj = self.mine_record(paper_record)
+
         if paper_obj is not None:
             paper_mined = True
             self.db.save_record(paper_obj.to_arxiv_record())
             paper_record = paper_obj.to_arxiv_record()
         
+        ontology = Ontology()
+        if OntologyMiner.is_minable:
+            ontology = OntologyMiner.mine_paper(paper_record.identity)
+
         self.db.set_semantic_parsed_research(ArxivSematicParsedResearch(\
             identity=paper_record.identity,\
             research_object=ResearchPaperFactory.from_arxiv_record(paper_record),\
+            ontology=ontology
         ))
         self.db.set_mined(paper_record.identity,paper_mined)
         

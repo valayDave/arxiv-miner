@@ -5,6 +5,10 @@ pipeline.
 """
 import datetime
 import dateparser
+from dataclasses import dataclass,field
+from dataclasses import asdict as D2D
+from typing import List
+
 from .scraper import Record
 from .semantic_parsing import \
     ArxivDocument,\
@@ -271,28 +275,41 @@ class ArxivRecord(object):
             created_on= json_object['created_on']
         )
 
+
+@dataclass
+class Ontology:
+    syntactic:List[str] =  field(default_factory=lambda : [])
+    semantic:List[str]=  field(default_factory=lambda : [])
+    union:List[str] =  field(default_factory=lambda : [])
+    enhanced:List[str] = field(default_factory=lambda : [])
+    mined:bool = False
 class ArxivSematicParsedResearch:
 
     research_object:ResearchPaper
     identity:ArxivIdentity
+    ontology:Ontology
 
     def __init__(self,\
             identity=None,\
             research_object=None,\
-            created_on = None
+            created_on = None,
+            ontology=Ontology(),
             ):
         self.identity = identity
         self.research_object = research_object
         if created_on is None:
             created_on = datetime.datetime.now().isoformat()
         self.created_on =dateparser.parse(str(created_on))# .isoformat()
+        self.ontology = ontology
     
     def to_json(self):
+
         return {
             'identity': self.identity.to_json(),
             'research_object': self.research_object.to_json(),
             'parsing_stats': self.research_object.parsing_results,
-            'created_on' : self.created_on.isoformat()
+            'created_on' : self.created_on.isoformat(),
+            'ontology':D2D(self.ontology)
         }
     
     @classmethod
@@ -301,10 +318,14 @@ class ArxivSematicParsedResearch:
             raise CorruptArxivRecordException()
         identity = ArxivIdentity(**json_object['identity'])
         research_object = ResearchPaper.from_json(json_object['research_object']) 
+        ontology = Ontology()
+        if 'ontology' in json_object:
+            ontology = Ontology(**json_object['ontology'])
         return cls(\
                 identity=identity,\
                 research_object=research_object,\
-                created_on= json_object['created_on']
+                created_on= json_object['created_on'],
+                ontology = ontology
             )
 
 

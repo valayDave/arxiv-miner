@@ -41,7 +41,9 @@ from .scraping_engine import \
         MassDataHarvestingEngine,\
         ScrapingEngine,\
         DailyHarvestationProcess,\
-        MassHarvestationProcess
+        MassHarvestationProcess,\
+        DailyHarvestationThread,\
+        MassHarvestationThread
         
 from .mining_engine import MiningProcess
 

@@ -25,11 +25,22 @@ import dateparser
 from typing import List
 import json
 from dataclasses import dataclass,field
-
+import re
 DEFAULT_TIME_RANGE = 30
 from luqum.elasticsearch import ElasticsearchQueryBuilder
 from luqum.parser import parser
 
+import asyncio
+from functools import wraps, partial
+
+def async_wrap(func):
+    @wraps(func)
+    async def run(*args, loop=None, executor=None, **kwargs):
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        pfunc = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, pfunc)
+    return run 
 
 class ArxivElasticSeachDatabaseClient(ArxivDatabase):
     def __init__(self,index_name=None,host='localhost',port=9200):
@@ -100,6 +111,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
     def _save_status(self,status:ArxivPaperStatus,identity:ArxivIdentity):
         status_doc = status.to_json()
         self.es.index(index=self.status_index_name,id=identity.identity,body=status_doc)
+        
 
     def _save_record(self,record:ArxivRecord):
         record_doc = record.to_json()
@@ -109,6 +121,19 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         record_doc = record.to_json()
         self.es.index(index=self.parsed_research_index_name,id=record.identity.identity,body=record_doc)
     
+    def _save_many_parsed_research(self,records:List[ArxivSematicParsedResearch]):
+        newrecords = []
+        for r in records:
+            newrecords.extend([{
+                "index":{
+                    "_index": self.parsed_research_index_name,
+                    "_id": r.identity.identity,
+
+                }
+            },r.to_json()])            
+        # print(newrecords)
+        self.es.bulk(newrecords)
+
     
     def query(self,paper_id) -> ArxivRecord:
         """query [summary]
@@ -191,6 +216,9 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             return self._get_parsed_research(paper_id)
         except:
             return None
+
+    def set_many_parsed_research(self,records:List[ArxivSematicParsedResearch]):
+        self._save_many_parsed_research(records)
         
     def set_semantic_parsed_research(self,record:ArxivSematicParsedResearch):
         self._save_semantic_parsed_research(record)
@@ -262,6 +290,8 @@ SOURCE_FIELDS = [
     'identity.*',
     'research_object.parsing_stats'
 ]
+AUTHOR_FIELD_NAME = 'identity.authors.keyword'
+
 
 @dataclass
 class CategoryFilterItem:
@@ -327,7 +357,6 @@ class TextSearchFilter:
 
     def _category_filter(self,category_filter_items:List[CategoryFilterItem]):
         combined_query = None
-        print('New _category_filters',category_filter_items)
         if len(category_filter_items) == 0:
             return combined_query
         for cat in category_filter_items:
@@ -491,7 +520,7 @@ class TextSearchFilter:
         if len(self.source_fields) > 0 :
             search_obj = search_obj.source(includes=self.source_fields)
             
-        print(json.dumps(search_obj.to_dict(),indent=4))
+        # print(json.dumps(search_obj.to_dict(),indent=4))
         return search_obj.to_dict()
 
 class Aggregation(TextSearchFilter):
@@ -579,13 +608,22 @@ class TermsAggregation(Aggregation):
 class SearchResults:
     identity:ArxivIdentity = None
     result_locations:list = []
-    def __init__(self,identity=None,result_locations=[],num_results=0,highlight_dict={}):
+    def __init__(self,identity=None,result_locations=[],num_results=0,highlight_dict={},hightlight_frags=[]):
         self.identity =identity
         self.result_locations = result_locations
         self.num_results = num_results
         self.highlight_dict = highlight_dict
+        self.hightlight_frags = hightlight_frags
 
-
+    def to_json(self):
+        self.identity
+        return {
+            'hightlight_frags' : self.hightlight_frags,
+            'result_locations':self.result_locations,
+            'num_results':self.num_results,
+            'highlight_dict':self.highlight_dict,
+            'identity' : self.identity.to_json()
+        }
 class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     annotation_remove_keys = ['identity.','research_object.','.text']
 
@@ -601,7 +639,7 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
         
         return search_generator
     
-    def text_search(self,filter_obj:TextSearchFilter):
+    def text_search(self,filter_obj:TextSearchFilter) -> List[SearchResults]:
         # print(filter_obj.query())
         text_res = Search.from_dict(filter_obj.query())\
                 .using(self.es)\
@@ -615,23 +653,51 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
             highlight_dict = {
 
             }
+            searchfragments = [
+
+            ]
             meta_dict =hit.meta.to_dict()
             if 'highlight' in meta_dict:
-                for k in list(meta_dict['highlight'].keys()):
-                    add_val = k 
+                
+                for key in list(meta_dict['highlight'].keys()):
+                    frag_obj = {}
+                    add_val = key 
                     for rm in self.annotation_remove_keys:
                         add_val = add_val.replace(rm,'')
                     highlights.append(add_val.title())
-                    highlight_dict[add_val.title()] = meta_dict['highlight'][k]
+                    highlight_dict[add_val.title()] = meta_dict['highlight'][key]
+                    frag_obj['title'] = add_val.title()
+                    frag_obj['highlight'] = self.fragment_from_hightlight(meta_dict['highlight'][key])
+                    searchfragments.append(frag_obj)
             
             response.append(SearchResults(\
                     identity=ArxivIdentity(**hit.to_dict()['identity']),
                     result_locations = highlights,\
                     num_results=int(text_res.hits.total['value']),\
-                    highlight_dict=highlight_dict
+                    highlight_dict=highlight_dict,
+                    hightlight_frags=searchfragments
                     ))
         return response
+    
+    @staticmethod
+    def fragment_from_hightlight(hightlights:List[str],tag='em'):
+        reg_str = f"<{tag}>(.*?)</{tag}>"
+        return_arr = []
+        for frag in hightlights:
+            res = re.split(reg_str, frag)
+            new_word = []
+            highlight_frag = dict(
+                words = re.findall(reg_str, frag),
+                text = " ".join(re.split(reg_str, frag))
+            )
+            # print(highlight_frag)
+            return_arr.append(highlight_frag)
+        return return_arr
             
+
+    
+
+
     def text_aggregation(self,agg_obj:Aggregation):
         """
         Returns an aggregation of type : 
@@ -652,3 +718,15 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
         aggregation_buckets = text_agg_res.aggregations.to_dict()[agg_obj.agg_name]['buckets']
         return_buckets = agg_obj.transform_resp(aggregation_buckets)
         return return_buckets
+
+    # @async_wrap
+    # def async_text_search_scan(self,filter_obj:TextSearchFilter):
+    #     return self.text_search_scan(filter_obj)
+
+    # @async_wrap
+    # def async_text_aggregation(self,agg_obj:Aggregation):
+    #     return self.text_aggregation(agg_obj)
+
+    # @async_wrap
+    # def async_text_search(self,filter_obj:TextSearchFilter):
+    #     return self.text_search(filter_obj)

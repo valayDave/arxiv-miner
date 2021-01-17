@@ -157,6 +157,7 @@ class Scraper(object):
                 response = urlopen(url)
             except HTTPError as e:
                 if e.code == 503:
+                    print(e)
                     to = int(e.hdrs.get('retry-after', 30))
                     print('Got 503. Retrying after {0:d} seconds.'.format(self.t))
                     time.sleep(self.t)
