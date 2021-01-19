@@ -1,9 +1,11 @@
 from .core import ArxivDatabase
+from ..ontology_miner import Ontology
 from ..record import \
         ArxivRecord,\
         ArxivIdentity,\
         ArxivPaperStatus,\
-        ArxivSematicParsedResearch
+        ArxivSematicParsedResearch, Author, CoreOntology,\
+        D2D
 from ..utils import get_date_range_from_today
 from ..paper import ArxivPaper
 from ..logger import create_logger
@@ -17,6 +19,7 @@ try:
     from elasticsearch_dsl import Search,Q,A
 except ImportError:
     raise ElasticsearchMissingException()
+
 
 from typing import List
 import random
@@ -270,6 +273,9 @@ FIELD_MAPPING = {
     'research_object.limitations.text':'Limitations',
     'research_object.dataset.text':'Dataset'
 }
+
+REVERSE_FIELD_MAP = {v:k for k,v in zip(FIELD_MAPPING.keys(),FIELD_MAPPING.values())}
+
 TEXT_HIGHLIGHT = [
     'identity.title',
     'identity.abstract',
@@ -309,16 +315,17 @@ class TextSearchFilter:
     def __init__(self,\
                 # Text filter opt
                 string_match_query="",\
-                text_filter_fields = [],\
+                text_filter_fields = [],
                 # Date filter opt
                 start_date_key=None,\
                 end_date_key = None,\
                 date_filter_field = DATE_FIELD_NAME,\
-                #Category filter :CategoryFilterItem  : use category_filter or category_filter_values,category_field,category_match_type
+                #Category filter :CategoryFilterItem  : use multi_category_filter or category_filter or category_filter_values,category_field,category_match_type
                 category_filter = [],\
                 category_filter_values =[],\
                 category_field = CATEGORY_FIELD_NAME,\
                 category_match_type= 'AND',\
+                multi_category_filter=[], # multi_category_filter : [[CategoryFilterItem]]
                 # Sort Key And Ordee
                 sort_key=DATE_FIELD_NAME,
                 sort_order='descending',\
@@ -335,7 +342,9 @@ class TextSearchFilter:
         
         self.text_search_query = self._text_search_query(string_match_query,text_filter_fields)
         self.date_filter = self._date_query(start_date_key,end_date_key,date_range_key=date_filter_field)
-        if category_filter and len(category_filter) > 0:
+        if multi_category_filter and len(multi_category_filter)>0:
+            self.category_filter = self._multicategory_filter(multi_category_filter)
+        elif category_filter and len(category_filter) > 0:
             self.category_filter = self._category_filter(category_filter)
         else:
             self.category_filter = self._subcategory_filter(category_filter_values,category_field,match_type=category_match_type)
@@ -354,6 +363,42 @@ class TextSearchFilter:
     def __hash__(self): # For UI required Hashing to identify uniqueness of input. 
         return hash(''.join([str(v) for v in list(self.__dict__.values())]))
 
+    def _multicategory_filter(self,category_filter_items:List[List[CategoryFilterItem]]):
+        combined_query = None
+        if len(category_filter_items) == 0:
+            return combined_query
+        for catblock in category_filter_items:
+            query = self._dsl_category_filter(catblock)
+            # print(query)
+            if combined_query == None and query is not None:
+                combined_query = query
+            elif query is not None:
+                combined_query = combined_query & query
+        if combined_query is None:
+            return combined_query
+        return combined_query.to_dict()
+
+
+    def _dsl_category_filter(self,category_filter_items:List[CategoryFilterItem]):
+        combined_query = None
+        if len(category_filter_items) == 0:
+            return combined_query
+        for cat in category_filter_items:
+            if len(cat.filter_values) == 0:
+                continue
+            for fv in cat.filter_values:
+                ph = dict()
+                ph[cat.field_name] = fv
+                if combined_query is None: 
+                    combined_query = Q('match_phrase',**ph)
+                else:
+                    if cat.match_type == 'AND':
+                        combined_query = combined_query & Q('match_phrase',**ph)
+                    else:
+                        combined_query = combined_query | Q('match_phrase',**ph)
+        if combined_query is None:
+            return combined_query
+        return combined_query
 
     def _category_filter(self,category_filter_items:List[CategoryFilterItem]):
         combined_query = None
@@ -370,6 +415,8 @@ class TextSearchFilter:
                         combined_query = combined_query & Q('match_phrase',**ph)
                     else:
                         combined_query = combined_query | Q('match_phrase',**ph)                
+        if combined_query is None:
+            return combined_query
         return combined_query.to_dict()
 
 
@@ -605,15 +652,17 @@ class TermsAggregation(Aggregation):
         return search_obj.to_dict()
 
 
+
 class SearchResults:
     identity:ArxivIdentity = None
     result_locations:list = []
-    def __init__(self,identity=None,result_locations=[],num_results=0,highlight_dict={},hightlight_frags=[]):
+    def __init__(self,identity=None,result_locations=[],num_results=0,highlight_dict={},hightlight_frags=[],ontology=Ontology()):
         self.identity =identity
         self.result_locations = result_locations
         self.num_results = num_results
         self.highlight_dict = highlight_dict
         self.hightlight_frags = hightlight_frags
+        self.ontology = ontology
 
     def to_json(self):
         self.identity
@@ -622,7 +671,8 @@ class SearchResults:
             'result_locations':self.result_locations,
             'num_results':self.num_results,
             'highlight_dict':self.highlight_dict,
-            'identity' : self.identity.to_json()
+            'identity' : self.identity.to_json(),
+            'ontology': D2D(self.ontology)
         }
 class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     annotation_remove_keys = ['identity.','research_object.','.text']
@@ -669,13 +719,17 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
                     frag_obj['title'] = add_val.title()
                     frag_obj['highlight'] = self.fragment_from_hightlight(meta_dict['highlight'][key])
                     searchfragments.append(frag_obj)
+            ontology = {}
+            if 'ontology' in hit.to_dict():
+                ontology = dict(ontology=Ontology(**hit.to_dict()['ontology']))
             
             response.append(SearchResults(\
                     identity=ArxivIdentity(**hit.to_dict()['identity']),
                     result_locations = highlights,\
                     num_results=int(text_res.hits.total['value']),\
                     highlight_dict=highlight_dict,
-                    hightlight_frags=searchfragments
+                    hightlight_frags=searchfragments,
+                    **ontology
                     ))
         return response
     
@@ -694,9 +748,6 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
             return_arr.append(highlight_frag)
         return return_arr
             
-
-    
-
 
     def text_aggregation(self,agg_obj:Aggregation):
         """
@@ -730,3 +781,71 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     # @async_wrap
     # def async_text_search(self,filter_obj:TextSearchFilter):
     #     return self.text_search(filter_obj)
+
+class KeywordsTextSearch(ArxivElasticTextSearch):
+    def __init__(self, index_name=None, host='localhost', port=9200):
+        super().__init__(index_name=index_name, host=host, port=port)
+        self.authors_index = self.index_name+"_authors"
+        self.ontology_index = self.index_name+"_ontology"
+        self.authors_autocomplete_field_name = "name.suggest"
+    
+    def set_author(self,author_obj:Author):
+        author_dict = D2D(author_obj)
+        self.es.index(
+            self.authors_index,author_dict,id=author_obj.name
+        )
+
+    def set_many_authors(self,authorslist:List[Author]):
+        newrecords = []
+        for r in authorslist:
+            newrecords.extend([{
+                "index":{
+                    "_index": self.authors_index,
+                    "_id": r.name,
+
+                }
+            },D2D(r)])
+        # print(newrecords)
+        self.es.bulk(newrecords)
+
+    def set_many_ontology(self,ontologylist:List[Author]):
+        newrecords = []
+        for ontstr in ontologylist:
+            newrecords.extend([{
+                "index":{
+                    "_index": self.ontology_index,
+                    "_id": ontstr,
+
+                }
+            },D2D(CoreOntology(value=ontstr))])
+        # print(newrecords)
+        self.es.bulk(newrecords)
+
+    def set_ontology(self,ontlist:List[str]):
+        for ont_str in ontlist:
+            ont = CoreOntology(value=ont_str)
+            ont_dict = D2D(ont)
+            self.es.index(
+                self.ontology_index,ont_dict,id=ont.value
+            )
+
+    def autocomplete_authors(self,fragment:str,max_frags=10) -> List[str]:
+        sugget_dict =dict(
+                suggest=dict(
+                    authors_completion = dict(
+                        prefix=fragment,
+                        completion=dict(
+                            field=self.authors_autocomplete_field_name,
+                            size=max_frags
+                        )
+                    )
+                )
+            )
+        search_results = self.es.search(sugget_dict,index=self.authors_index)
+        return_text = []
+        if len(search_results['suggest']['authors_completion']) > 0:
+            for suggest in search_results['suggest']['authors_completion'][0]['options']:
+                txt = suggest['text']
+                return_text.append(txt)
+        
+        return return_text

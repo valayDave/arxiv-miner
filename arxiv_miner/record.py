@@ -283,6 +283,15 @@ class Ontology:
     union:List[str] =  field(default_factory=lambda : [])
     enhanced:List[str] = field(default_factory=lambda : [])
     mined:bool = False
+@dataclass
+class Author:
+    name:str = None
+    email:str = None
+
+@dataclass
+class CoreOntology:
+    value:str = None
+
 class ArxivSematicParsedResearch:
 
     research_object:ResearchPaper

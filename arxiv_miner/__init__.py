@@ -25,6 +25,7 @@ from .database import \
         ArxivFSDatabaseService,\
         ArxivDatabaseServiceClient,\
         ArxivElasticSeachDatabaseClient,\
+        KeywordsTextSearch,\
         TextSearchFilter,\
         SearchResults,\
         CategoryFilterItem,\
