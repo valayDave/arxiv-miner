@@ -32,4 +32,4 @@ def get_database_client(client_name):
     if client_name == 'fs':
         return ArxivDatabaseServiceClient
     elif client_name == 'elasticsearch':
-        return ArxivElasticTextSearch
+        return KeywordsTextSearch

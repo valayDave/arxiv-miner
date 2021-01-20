@@ -9,7 +9,7 @@ The Mining Engine on Instantiation
                 --> Mining Ontology Here Too
 """
 from .database import ArxivDatabase
-from .record import ArxivRecord,ArxivIdentity,ArxivSematicParsedResearch,Ontology
+from .record import ArxivRecord,ArxivIdentity,ArxivSematicParsedResearch,Ontology,Author
 from .logger import create_logger
 from .exception import ArxivAPIException
 from .ontology_miner import OntologyMiner
@@ -78,7 +78,15 @@ class MiningEngine:
         ontology = Ontology()
         if OntologyMiner.is_minable:
             ontology = OntologyMiner.mine_paper(paper_record.identity)
-
+            try:
+                self.db.set_many_ontology(ontology.union)
+            except:
+                pass
+            
+        try:
+            self.db.set_many_authors( [Author(name=xp) for xp in paper_record.identity.authors])
+        except:
+            pass
         self.db.set_semantic_parsed_research(ArxivSematicParsedResearch(\
             identity=paper_record.identity,\
             research_object=ResearchPaperFactory.from_arxiv_record(paper_record),\
