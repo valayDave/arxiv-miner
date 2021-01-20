@@ -808,7 +808,7 @@ class KeywordsTextSearch(ArxivElasticTextSearch):
         # print(newrecords)
         self.es.bulk(newrecords)
 
-    def set_many_ontology(self,ontologylist:List[Author]):
+    def set_many_ontology(self,ontologylist:List[str]):
         newrecords = []
         for ontstr in ontologylist:
             newrecords.extend([{

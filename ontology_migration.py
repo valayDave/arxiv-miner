@@ -2,11 +2,11 @@
 from arxiv_miner import ArxivPaper
 from arxiv_miner.utils import load_json_from_file,save_json_to_file,dir_exists
 import os 
-from arxiv_miner import ArxivElasticSeachDatabaseClient
+from arxiv_miner import ArxivElasticSeachDatabaseClient,KeywordsTextSearch
 from config import Config
 from arxiv_miner.logger import create_logger
 from arxiv_miner.ontology_miner import OntologyMiner,ONTOLOGY_MINABLE
-from arxiv_miner.record import ArxivSematicParsedResearch,Ontology
+from arxiv_miner.record import ArxivSematicParsedResearch,Ontology,Author
 import time
 import os
 import tarfile
@@ -43,8 +43,8 @@ def create_backup(\
     backup_time = str(int(time.time()))
     
     logger = create_logger('Ontology Data Migration')
-    database = ArxivElasticSeachDatabaseClient(Config.elasticsearch_index,host=host,port=port)
-    migrate_db = ArxivElasticSeachDatabaseClient(Config.elasticsearch_index+"_with_ontology",host=host,port=port)
+    database = KeywordsTextSearch(Config.elasticsearch_index,host=host,port=port)
+    migrate_db = KeywordsTextSearch(Config.elasticsearch_index+"_with_ontology",host=host,port=port)
     num_stored = 0
     logger.info("Starting Database Stream")
     
@@ -64,6 +64,12 @@ def create_backup(\
                 ) for recobj,ontology in id_ontology_list
             ]
         migrate_db.set_many_parsed_research(srp)
+        migrate_db.set_many_authors(
+            [Author(name=xp) for xp in set([a for x in srp for a in x.identity.authors])]
+        )
+        migrate_db.set_many_ontology(
+            [xp for xp in set([a for _,x in id_ontology_list for a in x.union])]
+        )
         num_stored+=len(srp)
         # for recobj,ontology in id_ontology_list:
         #     parsed_research = ArxivSematicParsedResearch(\
