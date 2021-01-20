@@ -29,12 +29,14 @@ if not ONTOLOGY_MINABLE:
 @click.option('--print_every',default=100,help="Print Message After Saving X objects to FS")
 @click.option('--limit',default=None, type=int, help="Cap the Limit Of Records to Mine and Send to DB.")
 @click.option('--buffer-size',default=200, type=int, help="The Number Items to Keep in Batch For Ontology Processing.")
+@click.option('--workers',default=1, type=int, help="Number of Workers For Ontology Processing.")
 def create_backup(\
                 host = 'localhost',\
                 port = 9200,\
                 print_every=100,\
                 limit=None,\
                 buffer_size=200,
+                workers=1
                 ):
     click.secho(
         'Connecting To Elasticsearch on Host %s And Port %s'%(host,port),
@@ -54,7 +56,7 @@ def create_backup(\
             buffer.append(rec)
             continue
         
-        id_ontology_list = OntologyMiner.mine_lots_of_papers(buffer)
+        id_ontology_list = OntologyMiner.mine_lots_of_papers(buffer,workers=workers)
         buffer = []
         srp = [
                 ArxivSematicParsedResearch(
@@ -89,3 +91,4 @@ def create_backup(\
 
 if __name__ == '__main__':
     create_backup()
+    
