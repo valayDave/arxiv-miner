@@ -81,12 +81,14 @@ class MiningEngine:
             try:
                 self.db.set_many_ontology(ontology.union)
             except:
-                pass
-            
+                self.logger.info("No Ontology Saved")
+        else:
+            self.logger.info("No Ontology Saved")
+
         try:
             self.db.set_many_authors( [Author(name=xp) for xp in paper_record.identity.authors])
         except:
-            pass
+            self.logger.info("No Author Saved")
         self.db.set_semantic_parsed_research(ArxivSematicParsedResearch(\
             identity=paper_record.identity,\
             research_object=ResearchPaperFactory.from_arxiv_record(paper_record),\
