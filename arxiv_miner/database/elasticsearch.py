@@ -52,7 +52,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         self.index_name = index_name
         self.status_index_name = index_name+'_status'
         self.parsed_research_index_name = index_name + '_parsed_research'
-        self.es = elasticsearch.Elasticsearch([{"host": host, "port": port}])
+        self.es = elasticsearch.Elasticsearch([{"host": host, "port": port}],timeout=30, max_retries=10)
         if not self.es.ping():
             raise ArxivDatabaseConnectionException(host,port,'')
     
@@ -788,6 +788,7 @@ class KeywordsTextSearch(ArxivElasticTextSearch):
         self.authors_index = self.index_name+"_authors"
         self.ontology_index = self.index_name+"_ontology"
         self.authors_autocomplete_field_name = "name.suggest"
+        self.ontology_autocomplete_field_name = "value.suggest"
     
     def set_author(self,author_obj:Author):
         author_dict = D2D(author_obj)
@@ -845,6 +846,27 @@ class KeywordsTextSearch(ArxivElasticTextSearch):
         return_text = []
         if len(search_results['suggest']['authors_completion']) > 0:
             for suggest in search_results['suggest']['authors_completion'][0]['options']:
+                txt = suggest['text']
+                return_text.append(txt)
+        
+        return return_text
+    
+    def autocomplete_ontology(self,fragment:str,max_frags=10) -> List[str]:
+        sugget_dict =dict(
+                suggest=dict(
+                    ontology_completion = dict(
+                        prefix=fragment,
+                        completion=dict(
+                            field=self.ontology_autocomplete_field_name,
+                            size=max_frags
+                        )
+                    )
+                )
+            )
+        search_results = self.es.search(sugget_dict,index=self.ontology_index)
+        return_text = []
+        if len(search_results['suggest']['ontology_completion']) > 0:
+            for suggest in search_results['suggest']['ontology_completion'][0]['options']:
                 txt = suggest['text']
                 return_text.append(txt)
         
