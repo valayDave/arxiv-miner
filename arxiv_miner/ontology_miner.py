@@ -45,5 +45,6 @@ class OntologyMiner:
                     (identity,ontology)
                 )
         except Exception as e:
+            print("Exception : ",e)
             return []
         return ontologies
