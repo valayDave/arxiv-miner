@@ -243,6 +243,17 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             parsed_obj = self.get_semantic_parsed_research(paper_id=arxiv_id)
             yield (arxiv_id,record_obj,parsed_obj)
 
+    def get_id_list(self,id_list,page_number=1,page_size=10):
+        search_obj = Search(using=self.es, index=self.parsed_research_index_name)\
+                        .query(Q('ids',**dict(values=id_list)))
+        if page_size > 0:
+            page_start = page_size*(page_number-1)
+            page_end = page_size*(page_number)
+            search_obj = search_obj[page_start:page_end]
+        
+        text_res = search_obj.execute()
+        return [ArxivSematicParsedResearch.from_json(hit.to_dict()) for hit in text_res]
+
     def parsed_research_stream(self):
         """
         Stream all Parsed Semantic Research from DB 
