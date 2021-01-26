@@ -20,6 +20,3 @@ rpyc
 elasticsearch
 elasticsearch_dsl
 luqum
-
-# For Ontology Mining
-cso-classifier

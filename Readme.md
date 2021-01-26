@@ -32,6 +32,12 @@ Parse the Arxiv Latex/PDF into A research Paper Object which can be serialised s
 sh setup.sh
 ```
 
+### To Setup Ontology Miner: 
+
+```sh
+sh cso_setup.sh
+```
+
 ## What is Done Yet : 
 
 1. Arxiv PDF and LateX Extraction Pipeline
