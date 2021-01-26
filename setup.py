@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '1.3.8'
+version = '1.4.0'
 
 setup(name='arxiv_miner',
       version=version,

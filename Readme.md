@@ -32,6 +32,12 @@ Parse the Arxiv Latex/PDF into A research Paper Object which can be serialised s
 sh setup.sh
 ```
 
+### To Setup Ontology Miner: 
+
+```sh
+sh cso_setup.sh
+```
+
 ## What is Done Yet : 
 
 1. Arxiv PDF and LateX Extraction Pipeline
@@ -89,7 +95,15 @@ sh setup.sh
     ```sh
     python mine_papers.py --datastore fs --use_defaults start-miner
     ```
+- Source Harvest and Store to S3: 
+    ```sh
+    nohup /home/ubuntu/arxiv-miner/.env/bin/python /home/ubuntu/arxiv-miner/mass_source_harvest.py --max-chunks 200 > /home/ubuntu/arxiv-miner/mass_harvet.log &
+    ```
 
+-  Extract EC2 instance List from AWS
+    ```
+    aws ec2 describe-instances --region=us-east-1 --query 'Reservations[*].Instances[*].[InstanceId,Tags[?Key==`Name`].Value|[0],State.Name,PrivateIpAddress,PublicIpAddress]' --output table > instance_list.md
+    ```
 # TODO / VISION
 1. Create a search interface for looking for research. 
 2. Get daily analytics of the new research coming out 

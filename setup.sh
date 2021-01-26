@@ -12,7 +12,7 @@ sudo apt-get install -y make
 sudo apt-get install flex
 
 # install environment
-sudo apt-get install texlive-full
+sudo apt-get install texlive-full -y
 python -m venv .env
 # python3 -m venv .env
 .env/bin/pip install -r requirements.txt

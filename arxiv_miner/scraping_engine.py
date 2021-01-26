@@ -8,6 +8,7 @@ Information from Arxiv LateX papers
 
 import datetime
 import time
+from threading import Thread
 from multiprocessing import Process,Event
 from expiringdict import ExpiringDict
 from signal import signal, SIGINT
@@ -154,6 +155,7 @@ class DailyScrapingEngine(ScrapingEngine):
         try : 
             db_check_records = self._scrape(yesterday,today)
         except Exception as e:
+            self.logger.error(e)
             time.sleep(self.timeout_per_scrape)
             self.logger.error("Failure At Scraping For Dates %s To %s"%(today,yesterday))
             self.logger.error("%s"%str(e))
@@ -221,6 +223,44 @@ class MassDataHarvestingEngine(ScrapingEngine):
             end_date=end_date,\
             timeout_per_scrape=timeout_per_scrape)
 
+class HarvestingThread(Thread):
+    def __init__(self,scraping_engine:ScrapingEngine):
+        super().__init__(name=self.__class__.__name__)
+        self.exit = Event()
+        self.scraping_engine = scraping_engine
+        self.scraping_engine.logger.info("Starting Scraping Engine")
+        signal(SIGINT, self.shutdown)
+    
+    def shutdown(self,signal_received, frame):
+        # Handle any cleanup here
+        self.scraping_engine.logger.info('SIGINT or CTRL-C detected. Exiting gracefully')
+        self.exit.set()
+        exit(0)
+
+    def run(self):
+        raise NotImplementedError()
+
+class DailyHarvestationThread(HarvestingThread):
+    def __init__(self, scraping_engine,timeout_per_scrape=600):
+        super().__init__(scraping_engine)
+        self.timeout_per_scrape = timeout_per_scrape
+    
+    def run(self):
+        while True:
+            if self.exit.is_set():
+                break
+            self.scraping_engine()
+            self.scraping_engine.logger.info("Sleeping For %d Seconds Post Scraping "%self.timeout_per_scrape)
+            time.sleep(self.timeout_per_scrape)
+
+
+class MassHarvestationThread(HarvestingThread):
+    
+    def __init__(self, scraping_engine):
+        super().__init__(scraping_engine)
+    
+    def run(self):
+        self.scraping_engine()
 
 class HarvestingProcess(Process):
     def __init__(self,scraping_engine:ScrapingEngine):

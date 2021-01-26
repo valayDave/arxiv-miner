@@ -1,7 +1,8 @@
 import os
 import rpyc
+from typing import List
 from signal import signal,SIGINT
-from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus,ArxivSematicParsedResearch
+from ..record import ArxivRecord,ArxivIdentity,ArxivPaperStatus,ArxivSematicParsedResearch,Author
 from ..utils import dir_exists,save_json_to_file,load_json_from_file
 from ..paper import ArxivPaper
 from ..logger import create_logger
@@ -63,4 +64,16 @@ class ArxivDatabase:
         raise NotImplementedError()
 
     def archive(self): # To Extract all the data from DB
+        raise NotImplementedError()
+
+    def set_author(self,author_obj:Author):
+        raise NotImplementedError()
+
+    def set_many_authors(self,authorslist:List[Author]):
+        raise NotImplementedError()
+
+    def set_many_ontology(self,ontologylist:List[str]):
+        raise NotImplementedError()
+
+    def set_ontology(self,ontlist:List[str]):
         raise NotImplementedError()

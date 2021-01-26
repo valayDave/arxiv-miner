@@ -4,9 +4,14 @@ from arxiv_miner import \
     DailyScrapingEngine,\
     ScrapingEngine,\
     DailyHarvestationProcess,\
-    MassHarvestationProcess
+    MassHarvestationProcess,\
+    DailyHarvestationThread,\
+    MassHarvestationThread
+
 
 from arxiv_miner import ArxivElasticSeachDatabaseClient
+# import multiprocessing as mp
+# mp.set_start_method('spawn')
 
 from arxiv_miner.scraping_engine import CLASSES
 
@@ -22,6 +27,7 @@ DEFAULT_START_DATE = datetime.datetime.now().strftime(ScrapingEngine.date_format
 DEFAULT_END_DATE = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime(ScrapingEngine.date_format)
 DEFAUL_TIMEOUT_PER_DAILY_SCRAPE = 1000 # In Seconds
 DEFAULT_TIMEOUT_PER_DATE_RANGE_SCRAPE = 5
+DEFAULT_THREADMODE = False
 
 CLASS_STR = '\n'.join(['\t'+c['name']+' : '+c['code']+'\n' for c in CLASSES])
 APP_NAME = 'ArXiv-Scraper'
@@ -39,6 +45,7 @@ The Following CLASSES are Available for Scraping : \n
 
 def common_run_options(func):
     @click.option('--selected_class',default=DEFAULT_SELECTED_CLASS,help='Topic Of ArXiv Papers to Scrape')
+    @click.option('--thread-mode',is_flag=True,help='Run In Thread Mode Instead of Process Mode')
     @wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -53,6 +60,7 @@ def common_run_options(func):
 @click.pass_context
 def date_range(ctx, # click context
                 selected_class=DEFAULT_SELECTED_CLASS,\
+                thread_mode=DEFAULT_THREADMODE,\
                 start_date=DEFAULT_START_DATE,\
                 end_date=DEFAULT_END_DATE,\
                 timeout_per_scrape=DEFAULT_TIMEOUT_PER_DATE_RANGE_SCRAPE):
@@ -65,7 +73,14 @@ def date_range(ctx, # click context
                                     end_date=end_date,\
                                     timeout_per_scrape=timeout_per_scrape\
                                     )
-    harvesting_process = MassHarvestationProcess(harvester)
+    hp = None
+    if thread_mode:
+        click.secho("Thread Mode Detected",fg='blue')
+        hp = MassHarvestationThread(harvester)
+    else:
+        click.secho("Running Process Mode",fg='yellow')
+        hp =  MassHarvestationProcess(harvester)
+    harvesting_process = hp
     harvesting_process.start()
     harvesting_process.join()
 
@@ -75,11 +90,19 @@ def date_range(ctx, # click context
 @click.pass_context
 def daily_harvest(ctx, # click context
                 selected_class=DEFAULT_SELECTED_CLASS,\
+                thread_mode=DEFAULT_THREADMODE,\
                 timeout_per_scrape=DEFAUL_TIMEOUT_PER_DAILY_SCRAPE):
 
     database_client = ctx.obj['db_class'](**ctx.obj['db_args']) # Create Database 
     harvester = DailyScrapingEngine(database_client,selected_class=selected_class)
-    harvesting_process = DailyHarvestationProcess(harvester,timeout_per_scrape=timeout_per_scrape)
+    hp = None
+    if thread_mode:
+        click.secho("Thread Mode Detected",fg='blue')
+        hp = DailyHarvestationThread(harvester,timeout_per_scrape=timeout_per_scrape)
+    else:
+        click.secho("Running Process Mode",fg='yellow')
+        hp =  DailyHarvestationProcess(harvester,timeout_per_scrape=timeout_per_scrape)
+    harvesting_process = hp
     harvesting_process.start()
     harvesting_process.join()
 

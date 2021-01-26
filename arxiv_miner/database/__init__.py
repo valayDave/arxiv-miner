@@ -4,6 +4,7 @@ from .elasticsearch import \
     ArxivElasticSeachDatabaseClient,\
     DateAggregation,\
     TermsAggregation,\
+    KeywordsTextSearch,\
     CategoryFilterItem,\
     TextSearchFilter,\
     SearchResults,\
@@ -31,4 +32,4 @@ def get_database_client(client_name):
     if client_name == 'fs':
         return ArxivDatabaseServiceClient
     elif client_name == 'elasticsearch':
-        return ArxivElasticTextSearch
+        return KeywordsTextSearch
