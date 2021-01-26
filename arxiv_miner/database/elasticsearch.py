@@ -46,15 +46,23 @@ def async_wrap(func):
     return run 
 
 class ArxivElasticSeachDatabaseClient(ArxivDatabase):
-    def __init__(self,index_name=None,host='localhost',port=9200):
+    def __init__(self,index_name=None,host='localhost',port=9200,auth=None):
         if index_name == None:
             raise ElasticsearchIndexMissingException()
         self.index_name = index_name
         self.status_index_name = index_name+'_status'
         self.parsed_research_index_name = index_name + '_parsed_research'
-        self.es = elasticsearch.Elasticsearch([{"host": host, "port": port}],timeout=30, max_retries=10)
+        if port is None:
+            src_str = f'{host}'
+        else:
+            src_str = f'{host}:{port}'
+
+        if auth is None:
+            self.es = elasticsearch.Elasticsearch(src_str,timeout=30, max_retries=10)
+        else:
+            self.es = elasticsearch.Elasticsearch(src_str,http_auth=auth,timeout=30, max_retries=10)
         if not self.es.ping():
-            raise ArxivDatabaseConnectionException(host,port,'')
+            raise ArxivDatabaseConnectionException(src_str,'','')
     
     def _get_paper(self,paper_id):
         es_record = None
@@ -688,8 +696,8 @@ class SearchResults:
 class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     annotation_remove_keys = ['identity.','research_object.','.text']
 
-    def __init__(self, index_name=None, host='localhost', port=9200):
-        super().__init__(index_name=index_name, host=host, port=port)
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
 
     def text_search_scan(self,filter_obj:TextSearchFilter):
         search_query = filter_obj.query()
@@ -794,8 +802,8 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
     #     return self.text_search(filter_obj)
 
 class KeywordsTextSearch(ArxivElasticTextSearch):
-    def __init__(self, index_name=None, host='localhost', port=9200):
-        super().__init__(index_name=index_name, host=host, port=port)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.authors_index = self.index_name+"_authors"
         self.ontology_index = self.index_name+"_ontology"
         self.authors_autocomplete_field_name = "name.suggest"
