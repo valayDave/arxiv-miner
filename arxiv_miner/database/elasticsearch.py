@@ -62,7 +62,10 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
         else:
             self.es = elasticsearch.Elasticsearch(src_str,http_auth=auth,timeout=30, max_retries=10)
         if not self.es.ping():
-            raise ArxivDatabaseConnectionException(src_str,'','')
+            if port is None:
+                raise ArxivDatabaseConnectionException(src_str,80,'')
+            else:
+                raise ArxivDatabaseConnectionException(host,port,'')
     
     def _get_paper(self,paper_id):
         es_record = None
