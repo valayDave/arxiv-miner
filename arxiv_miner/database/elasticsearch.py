@@ -254,7 +254,7 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             parsed_obj = self.get_semantic_parsed_research(paper_id=arxiv_id)
             yield (arxiv_id,record_obj,parsed_obj)
 
-    def get_id_list(self,id_list,page_number=1,page_size=10):
+    def get_id_list(self,id_list,page_number=1,page_size=10,with_total=False):
         search_obj = Search(using=self.es, index=self.parsed_research_index_name)\
                         .query(Q('ids',**dict(values=id_list)))
         if page_size > 0:
@@ -263,7 +263,11 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             search_obj = search_obj[page_start:page_end]
         
         text_res = search_obj.execute()
-        return [ArxivSematicParsedResearch.from_json(hit.to_dict()) for hit in text_res]
+        
+        if not with_total:
+            return [ArxivSematicParsedResearch.from_json(hit.to_dict()) for hit in text_res]
+        else:
+            return (text_res.hits.total.value, [ArxivSematicParsedResearch.from_json(hit.to_dict()) for hit in text_res])
 
     def parsed_research_stream(self):
         """
@@ -335,6 +339,10 @@ class TextSearchFilter:
         string_match_query = '("brown fox" AND quick AND NOT dog)'
     """
     def __init__(self,\
+                # Ids that act as addition filter layer
+                id_vals=[],\
+                # no_date : bool for not using date filter
+                no_date = False,\
                 # Text filter opt
                 string_match_query="",\
                 text_filter_fields = [],
@@ -372,6 +380,7 @@ class TextSearchFilter:
             self.category_filter = self._subcategory_filter(category_filter_values,category_field,match_type=category_match_type)
         self.sort_key = sort_key
         self.sort_order = sort_order
+        self.no_date = no_date
         # if self.sort_key is not None : 
         #     self.sort_key = '-'+self.sort_key if sort_order == 'descending' else self.sort_key
         self.highlights = highlights
@@ -380,6 +389,7 @@ class TextSearchFilter:
         self.page_size = page_size
         self.source_fields = source_fields
         self.scan = scan
+        self.id_vals = id_vals
         # self.sort_order = sort_order
     
     def __hash__(self): # For UI required Hashing to identify uniqueness of input. 
@@ -547,8 +557,13 @@ class TextSearchFilter:
         """
         search_obj = Search()
         final_filter = [
-            Q('range',**self.date_filter)
+            
         ]
+        # Filters wont apply any dates. 
+        if not self.no_date:
+            final_filter.append(
+                Q('range',**self.date_filter)
+            )
         # Text Query setting
         if self.text_search_query is not None:
             query_type = list(self.text_search_query.keys())[0]
@@ -565,7 +580,11 @@ class TextSearchFilter:
 
         # final Query setting
         quer = Q('bool',must=final_filter)
-        
+
+        if len(self.id_vals) > 0:
+            # if id_vals are present then add filter to those too. 
+            quer = quer & Q('ids',**{'values':self.id_vals})
+
         # Sort key setting
         if self.sort_key is not None:
             order = dict()
