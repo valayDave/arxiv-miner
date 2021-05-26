@@ -3,9 +3,7 @@ The Purpose Of this Script is To Connect to ArxivDatabase
 Mine Records and Send them back to The DB. 
 """
 from arxiv_miner import \
-    MiningProcess,\
-    ArxivDatabaseServiceClient
-from arxiv_miner import ArxivElasticSeachDatabaseClient
+    MiningProcess
 
 import click
 import os
