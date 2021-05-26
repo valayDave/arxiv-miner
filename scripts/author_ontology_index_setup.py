@@ -5,7 +5,7 @@ from arxiv_miner import ArxivPaper
 from arxiv_miner.utils import load_json_from_file,save_json_to_file,dir_exists
 import os 
 from arxiv_miner import ArxivElasticSeachDatabaseClient
-from config import Config
+from arxiv_miner.config import Config
 from arxiv_miner.logger import create_logger
 from arxiv_miner.ontology_miner import OntologyMiner,ONTOLOGY_MINABLE
 from arxiv_miner.record import ArxivSematicParsedResearch, Author,Ontology

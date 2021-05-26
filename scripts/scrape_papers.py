@@ -1,5 +1,4 @@
 from arxiv_miner import \
-    ArxivDatabaseServiceClient,\
     MassDataHarvestingEngine,\
     DailyScrapingEngine,\
     ScrapingEngine,\
@@ -19,8 +18,9 @@ import os
 import click
 import datetime
 from functools import wraps,partial
-from config import Config
-from cli import db_cli
+from arxiv_miner.config import Config
+from arxiv_miner.cli import db_cli
+
 
 DEFAULT_SELECTED_CLASS = 'cs'
 DEFAULT_START_DATE = datetime.datetime.now().strftime(ScrapingEngine.date_format)
@@ -64,7 +64,6 @@ def date_range(ctx, # click context
                 start_date=DEFAULT_START_DATE,\
                 end_date=DEFAULT_END_DATE,\
                 timeout_per_scrape=DEFAULT_TIMEOUT_PER_DATE_RANGE_SCRAPE):
-
     database_client = ctx.obj['db_class'](**ctx.obj['db_args'])
     harvester = MassDataHarvestingEngine.from_string_dates(
                                     database_client,\
@@ -92,7 +91,6 @@ def daily_harvest(ctx, # click context
                 selected_class=DEFAULT_SELECTED_CLASS,\
                 thread_mode=DEFAULT_THREADMODE,\
                 timeout_per_scrape=DEFAUL_TIMEOUT_PER_DAILY_SCRAPE):
-
     database_client = ctx.obj['db_class'](**ctx.obj['db_args']) # Create Database 
     harvester = DailyScrapingEngine(database_client,selected_class=selected_class)
     hp = None

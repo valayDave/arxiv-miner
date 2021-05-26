@@ -9,12 +9,12 @@ from arxiv_miner import ArxivElasticSeachDatabaseClient
 
 import click
 import os
-from config import Config
-from cli import db_cli
+from arxiv_miner.config import Config
+from arxiv_miner.cli import db_cli
 import time
 
-DEFAULT_PATH = Config.mining_data_path
-DEFAULT_DETEX_PATH = Config.detex_path
+DEFAULT_PATH = os.path.abspath('./mining_data/papers')
+DEFAULT_DETEX_PATH = os.path.abspath('./detex')
 
 DEFAULT_MINING_INTERVAL=5
 SLEEP_BETWEEEN_PORCS = 5

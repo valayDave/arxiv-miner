@@ -1,6 +1,6 @@
 from typing import List
 import streamlit as st
-from config import Config
+from arxiv_miner.config import Config
 import dateparser
 from streamlit.cli import main
 import datetime
@@ -22,7 +22,7 @@ from plotly.subplots import make_subplots
 import click
 import dateparser
 
-from cli import database_choice,common_run_options
+from arxiv_miner.cli import database_choice,common_run_options
 DEFAULT_APP_NAME = 'ArXiv-Search-Dashboard'
 APP_HELP_STR = '''
 <summary>

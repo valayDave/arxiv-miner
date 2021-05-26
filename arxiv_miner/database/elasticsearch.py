@@ -56,7 +56,6 @@ class ArxivElasticSeachDatabaseClient(ArxivDatabase):
             src_str = f'{host}'
         else:
             src_str = f'{host}:{port}'
-
         if auth is None:
             self.es = elasticsearch.Elasticsearch(src_str,timeout=30, max_retries=10)
         else:
@@ -810,18 +809,6 @@ class ArxivElasticTextSearch(ArxivElasticSeachDatabaseClient):
         aggregation_buckets = text_agg_res.aggregations.to_dict()[agg_obj.agg_name]['buckets']
         return_buckets = agg_obj.transform_resp(aggregation_buckets)
         return return_buckets
-
-    # @async_wrap
-    # def async_text_search_scan(self,filter_obj:TextSearchFilter):
-    #     return self.text_search_scan(filter_obj)
-
-    # @async_wrap
-    # def async_text_aggregation(self,agg_obj:Aggregation):
-    #     return self.text_aggregation(agg_obj)
-
-    # @async_wrap
-    # def async_text_search(self,filter_obj:TextSearchFilter):
-    #     return self.text_search(filter_obj)
 
 class KeywordsTextSearch(ArxivElasticTextSearch):
     def __init__(self, **kwargs):
