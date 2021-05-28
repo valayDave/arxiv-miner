@@ -1,6 +1,6 @@
 # Running the Damn Thing. 
 
-All scripts in the [scripts folder](https://github.com/valayDave/arxiv-miner/tree/oss-release/scripts) consist of the scripts needed to scrape and parse content for storage in ArXiv. The `default_config.ini` file contains the `elasticsearch` configuration needed to run most scripts. General structure of the ini file is as follows:
+All scripts in the [scripts folder](https://github.com/valayDave/arxiv-miner/tree/master/scripts) consist of the scripts needed to scrape and parse content for storage in ArXiv. The `default_config.ini` file contains the `elasticsearch` configuration needed to run most scripts. General structure of the ini file is as follows:
 ```ini
 [elasticsearch]
 host = localhost

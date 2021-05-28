@@ -1,5 +1,5 @@
 # Core Data Structures
-[arxiv_miner/record.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/record.py) consists of all the core data structures needed to by the scraping/mining and data storage serialization/deserialization. 
+[arxiv_miner/record.py](https://github.com/valayDave/arxiv-miner/blob/master/arxiv_miner/record.py) consists of all the core data structures needed to by the scraping/mining and data storage serialization/deserialization. 
 ## `ArxivRecord`
 This is the core base class which is used by `ArxivPaper` and holds all relevant data/metadata post parsing of LaTeX sources. 
 ```python

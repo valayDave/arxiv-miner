@@ -1,11 +1,11 @@
 # Core Components
 
 ## Scraping
-[arxiv_miner/scraping_engine.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/scraping_engine.py) consists of the classes to tap into the feed from ArXiv and creates an [`ArxivRecord`](structures.md#ArxivRecord) in Elasticsearch. This is done so that records are only re-mined if necessary. Instructions to scrape data into Elasticsearch are provided [here](deployment_scripts.md#data-extraction).
+[arxiv_miner/scraping_engine.py](https://github.com/valayDave/arxiv-miner/blob/master/arxiv_miner/scraping_engine.py) consists of the classes to tap into the feed from ArXiv and creates an [`ArxivRecord`](structures.md#ArxivRecord) in Elasticsearch. This is done so that records are only re-mined if necessary. Instructions to scrape data into Elasticsearch are provided [here](deployment_scripts.md#data-extraction).
 
 
 ## Mining and Parsing 
-[arxiv_miner/mining_engine.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/mining_engine.py) consists of a process that mines papers which get scraped. [paper.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/paper.py) consists of the `ArxivPaper` class. This class extracts LaTeX source repository from remote source. Each LaTeX source repository is parsed to create a "Structure Tree" of the research document. The Structure tree is created using [tex2py](https://github.com/alvinwan/tex2py). The Structure tree helps correlate the structure of latex document. 
+[arxiv_miner/mining_engine.py](https://github.com/valayDave/arxiv-miner/blob/master/arxiv_miner/mining_engine.py) consists of a process that mines papers which get scraped. [paper.py](https://github.com/valayDave/arxiv-miner/blob/master/arxiv_miner/paper.py) consists of the `ArxivPaper` class. This class extracts LaTeX source repository from remote source. Each LaTeX source repository is parsed to create a "Structure Tree" of the research document. The Structure tree is created using [tex2py](https://github.com/alvinwan/tex2py). The Structure tree helps correlate the structure of latex document. 
 
 The structure tree is then used to create a `Section` object. More information about `Section` object can be found in [Core Structures](structures.md#Section) The `text` within each `Section` is populated by using the [opendetex library](https://github.com/pkubowicz/opendetex). The opendex library helps filter text information from individual tex files. A hacky algorithm based on number of tex files correlates the text with Structure Tree to create a single `Section`. 
 
@@ -24,7 +24,7 @@ paperdoc = ResearchPaperFactory.from_arxiv_record(paper)
 
 
 ## Storage And Search
-[arxiv_miner/database/elasticsearch.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/database/elasticsearch.py) consists of the core methods over **Elasticsearch** to search and aggregate data. Search and aggregation requires two classes : 
+[arxiv_miner/database/elasticsearch.py](https://github.com/valayDave/arxiv-miner/blob/master/arxiv_miner/database/elasticsearch.py) consists of the core methods over **Elasticsearch** to search and aggregate data. Search and aggregation requires two classes : 
 1.  *A wrapper class over Elasticsearch to execute the search and aggregate queries* : `KeywordsTextSearch` or `ArxivElasticTextSearch`
     - These classes contains methods that help retrieve information from the index containing the mined documents.
     ```python
