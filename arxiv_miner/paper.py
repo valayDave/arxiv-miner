@@ -84,7 +84,7 @@ class ArxivPaper(ArxivRecord):
             final_dict = {**final_dict,**self.paper_processing_meta.to_json()}
         if self.latex_parsing_result:
             final_dict['parsing_error'] = self.latex_parsing_result.parsing_error
-        return core_meta
+        return final_dict
     
     @property
     def identity_meta(self):
@@ -276,6 +276,11 @@ class ArxivPaper(ArxivRecord):
     def to_fs(self):
         self._save_metadata_to_fs()
         self._save_parsed_document_to_fs()
+    
+    @classmethod
+    def from_arxiv_id(cls,axid,root_papers_path,detex_path=None):
+        axobj = cls(axid,root_papers_path,build_paper=True,detex_path=detex_path)
+        return axobj
 
     ############ ############ ######################## ############ ############
     ############ Portability Methods To Make `ArxivPaper` a Processing Object that can reside anywhere.  ############
