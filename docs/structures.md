@@ -40,7 +40,7 @@ Any section that doesn't fit the predefined sections will be categorized as *Unk
 The `ResearchPaper` consists of key value pairs which relate to the given predefined sections. The key is the name of the section eg. Introduction, Related Works etc. and the value is a `Section`. 
 ## `Section`
 
-`Section` is a tree-like data structure that holds hierarchical information. Fragment is given by:
+`Section` is a tree-like data structure that holds hierarchical information. `Section` is given by:
 ```python
 class Section:
     title:str = "Introduction"

@@ -7,7 +7,7 @@
 ## Mining and Parsing 
 [arxiv_miner/mining_engine.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/mining_engine.py) consists of a process that mines papers which get scraped. [paper.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/paper.py) consists of the `ArxivPaper` class. This class extracts LaTeX source repository from remote source. Each LaTeX source repository is parsed to create a "Structure Tree" of the research document. The Structure tree is created using [tex2py](https://github.com/alvinwan/tex2py). The Structure tree helps correlate the structure of latex document. 
 
-The structure tree is then used to create a `Section` object. More information about `Section` object can be found in [Core Structures](structures.md#Section) The text within each Fragment is populated by using the [opendetex library](https://github.com/pkubowicz/opendetex). The opendex library helps filter text information from individual tex files. A hacky algorithm correlates the text with Structure Tree to create a `Section`. 
+The structure tree is then used to create a `Section` object. More information about `Section` object can be found in [Core Structures](structures.md#Section) The `text` within each `Section` is populated by using the [opendetex library](https://github.com/pkubowicz/opendetex). The opendex library helps filter text information from individual tex files. A hacky algorithm based on number of tex files correlates the text with Structure Tree to create a single `Section`. 
 
 Instructions to mine papers after scraping and index into Elasticsearch are provided [here](deployment_scripts.md#data-mining-and-storage).
 
@@ -24,8 +24,9 @@ paperdoc = ResearchPaperFactory.from_arxiv_record(paper)
 
 
 ## Storage And Search
-[arxiv_miner/database/elasticsearch.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/database/elasticsearch.py) consists of the core methods over **Elasticsearch** to search and aggregate data. Search and aggregation can be done using two classes : 
-- The `KeywordsTextSearch` or `ArxivElasticTextSearch` is a wrapper over Elasticsearch to search and aggregate data. 
+[arxiv_miner/database/elasticsearch.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/database/elasticsearch.py) consists of the core methods over **Elasticsearch** to search and aggregate data. Search and aggregation requires two classes : 
+1.  *A wrapper class over Elasticsearch to execute the search and aggregate queries* : `KeywordsTextSearch` or `ArxivElasticTextSearch`
+    - These classes contains methods that help retrieve information from the index containing the mined documents.
     ```python
     from arxiv_miner import KeywordsTextSearch 
     ELASTICARGS= dict(
@@ -37,7 +38,7 @@ paperdoc = ResearchPaperFactory.from_arxiv_record(paper)
     database = KeywordsTextSearch(**ELASTICARGS)
 
     ```
-- Search and Aggregation Filters:
+2. *A wrapper class to create the search and aggregation queries from input* : `TextSearchFilter`, `DateAggregation` and `TermsAggregation`
     - Search and aggregation wrappers are created using [elasticsearch_dsl](https://elasticsearch-dsl.readthedocs.io/en/latest/). 
     - `TextSearchFilter` is the core wrapper on what to search i.e. core filters over the indexed data after mining
     ```python
