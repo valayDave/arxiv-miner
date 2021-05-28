@@ -4,7 +4,7 @@ All scripts in the [scripts folder](https://github.com/valayDave/arxiv-miner/tre
 
 ## Data Extraction
 
-`scripts/scrape_papers.py` will tap into feed provided by ArXiv from [this URL](http://export.arxiv.org/oai2?verb=ListRecords) to store records for futher mining. It will start the data extraction according to arguments. This step is done to only scrape for new content or content which has changed.
+`scripts/scrape_papers.py` will tap into feed provided by ArXiv from [this URL](http://export.arxiv.org/oai2?verb=ListRecords) to store records for further mining. It will start the data extraction according to arguments. This step is done to only scrape for new content or content which has changed.
 
 `scripts/scrape_papers.py` provide two options:
 - Extract new records which are published on the feed in the last 24 hours and store in DB.
