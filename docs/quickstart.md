@@ -7,8 +7,14 @@ This library can be used in may ways. It can be used as a standalone library to 
 
 ## Core Library Install 
 
+From Source 
 ```sh
 pip install -r git+https://github.com/valayDave/arxiv-miner
+```
+
+From pip 
+```sh
+pip install arxiv-miner
 ```
 ## Latex Mining Utils installation
 Main dependences : `texlive-full` (Ubuntu) or [`texshop`](https://pages.uoregon.edu/koch/texshop/) (OSX) and [`opendetex`](https://github.com/pkubowicz/opendetex). The [setup_latex_parsing.sh](https://github.com/valayDave/arxiv-miner/blob/master/setup_latex_parsing.sh) script will install `texlive-full` and other dependencies for ubuntu and also create the binary for `opendetex` in the current working directory. 
