@@ -4,7 +4,7 @@
 [arxiv_miner/scraping_engine.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/scraping_engine.py) consists of the classes to tap into the feed from ArXiv and creates an [`ArxivRecord`](structures.md#ArxivRecord) in Elasticsearch. This is done so that records are only re-mined if necessary. Instructions to scrape data into Elasticsearch are provided [here](deployment_scripts.md#data-extraction).
 
 
-## Parsing 
+## Mining and Parsing 
 [arxiv_miner/mining_engine.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/mining_engine.py) consists of a process that mines papers which get scraped. [paper.py](https://github.com/valayDave/arxiv-miner/blob/oss-release/arxiv_miner/paper.py) consists of the `ArxivPaper` class. This class extracts LaTeX source repository from remote source. Each LaTeX source repository is parsed to create a "Structure Tree" of the research document. The Structure tree is created using [tex2py](https://github.com/alvinwan/tex2py). The Structure tree helps correlate the structure of latex document. 
 
 The structure tree is then used to create a `Section` object. More information about `Section` object can be found in [Core Structures](structures.md#Section) The text within each Fragment is populated by using the [opendetex library](https://github.com/pkubowicz/opendetex). The opendex library helps filter text information from individual tex files. A hacky algorithm correlates the text with Structure Tree to create a `Section`. 
@@ -39,7 +39,7 @@ paperdoc = ResearchPaperFactory.from_arxiv_record(paper)
     ```
 - Search and Aggregation Filters:
     - Search and aggregation wrappers are created using [elasticsearch_dsl](https://elasticsearch-dsl.readthedocs.io/en/latest/). 
-    - `TextSearchFilter` is the core wrapper on what to search and filter from data indexed after mining
+    - `TextSearchFilter` is the core wrapper on what to search i.e. core filters over the indexed data after mining
     ```python
     from arxiv_miner import TextSearchFilter, DATE_FIELD_NAME, CATEGORY_FIELD_NAME, TEXT_HIGHLIGHT,CategoryFilterItem
     text_filter = TextSearchFilter(

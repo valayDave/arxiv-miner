@@ -47,5 +47,5 @@ class Section:
     text:str = "Text relating to the introduction of a paper"
     children:List[Section] 
 ```
-The *children* in the `Section` hold the information about the child notes of that Fragment. The Fragment object helps capture a research paper’s hierarchy before it gets parsed into a key-value-based `ResearchPaper`. The `Section` object can also be serialized to JSON making it indexable in the Lucene search index.  
+The *children* in the `Section` hold the information about the child notes of that `Section`. The `Section` object helps capture a research paper’s hierarchy before it gets parsed into a key-value-based `ResearchPaper`. The `Section` object can also be serialized to JSON making it indexable in the Lucene search index.  
 

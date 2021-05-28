@@ -21,3 +21,19 @@ ArXiv Miner was created to easily scraping, parsing and search of research conte
 - `arxiv-table-miner` : Coming Soon.
 - `arxiv-table-ml-models` : Coming Soon.
 - `semantic-scholar-data-pipeline` : https://github.com/valayDave/semantic-scholar-data-pipeline
+
+
+## Credits and Appreciation
+This project like all others has been built on shoulders of giants. A big thanks to the creators of the following libraries/open source projects that aided the development of `arxiv-miner`, and it's family of projects:
+- [arxiv-sanity](https://github.com/karpathy/arxiv-sanity-preserver)
+- [arxiv-vanity/engrafo](https://github.com/arxiv-vanity/engrafo) 
+- [arxivscraper](https://github.com/Mahdisadjadi/arxivscraper)
+- [tex2py](https://github.com/alvinwan/tex2py)
+- [cso-classifier](https://github.com/angelosalatino/cso-classifier/) 
+- [axcell](https://github.com/paperswithcode/axcell)
+- [elasticsearch](https://github.com/elastic/elasticsearch)
+- [Semantic Scholar Open Research corpus](https://github.com/allenai/s2orc)
+- [metaflow](https://metaflow.org)
+
+## Licence
+MIT

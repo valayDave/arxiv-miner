@@ -7,7 +7,7 @@ import datetime
 from functools import wraps
 import arxiv_miner
 from arxiv_miner import \
-        ArxivElasticTextSearch,\
+        KeywordsTextSearch,\
         TermsAggregation,\
         DateAggregation,\
         TextSearchFilter,\
@@ -24,6 +24,25 @@ import dateparser
 
 from arxiv_miner.cli import database_choice,common_run_options
 DEFAULT_APP_NAME = 'ArXiv-Search-Dashboard'
+import argparse
+import streamlit as st
+import os
+
+parser = argparse.ArgumentParser(description=f'{DEFAULT_APP_NAME} : Quick streamlist dashboard to search over mined documents')
+
+parser.add_argument('--config', default='default_config.ini',
+                    help="Path to configuration. If not provided default will be used.")
+try:
+    args = parser.parse_args()
+except SystemExit as e:
+    # This exception will be raised if --help or invalid command line arguments
+    # are used. Currently streamlit prevents the program from exiting normally
+    # so we have to do a hard exit.
+    os._exit(e.code)
+
+config = args.config
+
+
 APP_HELP_STR = '''
 <summary>
 <h3>Product Help</h3>
@@ -70,9 +89,9 @@ def get_bookmarker():
     return BookMarkMap()
 
 class DataView():
-    def __init__(self,database:ArxivElasticTextSearch):
+    def __init__(self,database:KeywordsTextSearch):
         super().__init__()
-        if type(database) != ArxivElasticTextSearch:
+        if type(database) != KeywordsTextSearch:
             raise("Elastic Search Required For Text Based DB Search")
         sort_keys = [
             dict(name='Recency',value=DATE_FIELD_NAME),
@@ -336,7 +355,7 @@ class DataView():
         return (bookmark_button_res,block.identity.identity) # --> Returns button value and identity. 
 
 
-@st.cache(hash_funcs={ArxivElasticTextSearch:id,TextSearchFilter:hash},persist=True,allow_output_mutation=True)
+@st.cache(hash_funcs={KeywordsTextSearch:id,TextSearchFilter:hash},persist=True,allow_output_mutation=True)
 def get_db_data(\
         db_conn,\
         tsf
@@ -344,12 +363,11 @@ def get_db_data(\
     return db_conn.text_search(tsf)
 
 
-@st.cache(hash_funcs={ArxivElasticTextSearch:id},allow_output_mutation=True)
-def get_db_obj(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
+@st.cache(hash_funcs={KeywordsTextSearch:id},allow_output_mutation=True)
+def get_db_obj(use_defaults,config_path,host,port,app_name=DEFAULT_APP_NAME):
     db_arg_obj = {}
-    datastore = 'elasticsearch'
-    args , client_class = database_choice(datastore,use_defaults,host,port)
-    print_str = '\n %s Process Using %s Datastore'%(app_name,datastore)
+    args , client_class = database_choice(use_defaults,config_path,host,port)
+    print_str = '\n %s Process Using %s Datastore'%('ArXiv-Search-Dash','elasticsearch')
     args_str = ''.join(['\n\t'+ i + ' : ' + str(args[i]) for i in args])
     click.secho(print_str,fg='green',bold=True)
     click.secho(args_str+'\n\n',fg='magenta')
@@ -360,10 +378,10 @@ def get_db_obj(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
     return database_client
 
         
-def text_search_dashboard(use_defaults,host,port,app_name=DEFAULT_APP_NAME):
-    database_client = get_db_obj(use_defaults,host,port)
+def text_search_dashboard(use_defaults,config_path,host,port,app_name=DEFAULT_APP_NAME):
+    database_client = get_db_obj(use_defaults,config_path,host,port)
     DataView(database_client)
     
 if __name__=="__main__":
     # text_search_dashboard = wrap_db(text_search_dashboard,main)
-    text_search_dashboard(True,None,None)
+    text_search_dashboard(False,config,None,None)
