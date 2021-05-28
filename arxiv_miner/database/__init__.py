@@ -11,12 +11,7 @@ from .elasticsearch import \
     FIELD_MAPPING,\
     DATE_FIELD_NAME
 
-from .filesystem import ArxivFSDatabase
-from .proxy_service import \
-            ArxivFSDatabaseService,\
-            ArxivDatabaseServiceClient
-
-SUPPORTED_DBS = ['fs','elasticsearch']
+SUPPORTED_DBS = ['elasticsearch']
 
 class DatabaseNotSupported(Exception):
     headline = 'DB_CLIENT_NOT_FOUND'
@@ -29,7 +24,5 @@ class DatabaseNotSupported(Exception):
 def get_database_client(client_name):
     if client_name not in SUPPORTED_DBS:
         raise DatabaseNotSupported(client_name)
-    if client_name == 'fs':
-        return ArxivDatabaseServiceClient
     elif client_name == 'elasticsearch':
         return KeywordsTextSearch

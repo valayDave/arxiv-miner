@@ -9,7 +9,7 @@ import boto3
 import metaflow
 import os
 import click
-from config import Config
+from arxiv_miner.config import Config
 import json
 from arxiv_miner.logger import create_logger
 from typing import List,Tuple

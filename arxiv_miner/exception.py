@@ -32,7 +32,7 @@ class ArxivAPIException(Exception):
 
 class SectionSerialisationException(LatexParserException):
      def __init__(self,ms):
-        msg = "Serialisation of Section Object Requeses %s"%ms
+        msg = "Serialisation of Section Object Requires %s"%ms
         super(SectionSerialisationException, self).__init__(msg)
 
 

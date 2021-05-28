@@ -9,7 +9,6 @@ from dataclasses import dataclass,field
 from dataclasses import asdict as D2D
 from typing import List
 
-from .scraper import Record
 from .semantic_parsing import \
     ArxivDocument,\
     ResearchPaper

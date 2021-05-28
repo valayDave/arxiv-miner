@@ -1,6 +1,5 @@
 # For Arxiv Scraping
 arxiv
-arxivscraper
 
 # For Arxiv Processing
 tex2py
@@ -16,7 +15,9 @@ dateparser
 
 # This is For Arxiv Mining
 expiringdict
-rpyc
 elasticsearch
 elasticsearch_dsl
 luqum
+
+# For dashboard
+streamlit

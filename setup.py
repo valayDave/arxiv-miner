@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '1.4.0'
+version = '2.0.0'
 
 setup(name='arxiv_miner',
       version=version,
@@ -13,7 +13,6 @@ setup(name='arxiv_miner',
       include_package_data=True,
       install_requires = [
         'arxiv',
-        'arxivscraper',
         'tex2py',
         'matplotlib',
         'pandas',
@@ -21,7 +20,6 @@ setup(name='arxiv_miner',
         'numpy',
         'dateparser',
         'expiringdict',
-        'rpyc',
         'elasticsearch',
         'elasticsearch_dsl',
         'luqum',
