@@ -1,0 +1,7 @@
+include Readme.md
+include LICENSE.txt
+include default_config.ini
+include setup.sh
+include setup_latex_parsing.sh
+include scripts/*.py
+include docs/*
