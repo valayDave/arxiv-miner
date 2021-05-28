@@ -39,6 +39,6 @@ This project like all others has been built on shoulders of giants. A big thanks
 - [elasticsearch](https://github.com/elastic/elasticsearch)
 - [Semantic Scholar Open Research corpus](https://github.com/allenai/s2orc)
 - [metaflow](https://metaflow.org)
-
+- [docsify](https://docsify.js.org/#/)
 ## Licence
 MIT
