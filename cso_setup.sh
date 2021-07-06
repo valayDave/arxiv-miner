@@ -1,6 +1,2 @@
-pip install -r nltk cso-classifier
-python - << EOF
-import classifier.classifier as classifier
-classifier.setup()
-exit() # it is important to close the current console, to make those changes effective
-EOF
+pip install nltk cso-classifier
+python -m spacy download en_core_web_sm
