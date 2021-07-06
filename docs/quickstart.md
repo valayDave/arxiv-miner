@@ -9,7 +9,7 @@ This library can be used in may ways. It can be used as a standalone library to 
 
 From Source 
 ```sh
-pip install -r git+https://github.com/valayDave/arxiv-miner
+pip install git+https://github.com/valayDave/arxiv-miner
 ```
 
 From pip 
