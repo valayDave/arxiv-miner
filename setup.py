@@ -18,7 +18,7 @@ setup(name='arxiv_miner',
       py_modules=['arxiv_miner', ],
       include_package_data=True,
       install_requires = [
-        'arxiv',
+        'arxiv==0.5.3',
         'tex2py',
         'matplotlib',
         'pandas',
