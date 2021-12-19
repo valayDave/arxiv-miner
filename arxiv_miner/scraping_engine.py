@@ -204,7 +204,8 @@ class MassDataHarvestingEngine(ScrapingEngine):
                 scrape_status.append(self._save_oa2_identity(cache_missed_paper))
             new_added = sum([1 for st in scrape_status if st])
             self.logger.info("Saved %d Records For %s To %s"%(new_added,start_date,end_date))
-            time.sleep(self.timeout_per_scrape) # Sleep For X Number of Seconds Before One Starts Again. 
+            if len(self.scraping_dates) > 1:
+                time.sleep(self.timeout_per_scrape) # Sleep For X Number of Seconds Before One Starts Again. 
                 
 
     @classmethod

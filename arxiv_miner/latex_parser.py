@@ -21,8 +21,8 @@ def get_tex_tree(tex_path):
 
 def split_match(split_value:str,splitting_string:str,split_upto=0.5,split_bins=10):
     """split_match 
-    Splits a Keep Splitting a `splitting_string` based on the value of `split_value`.
-    It does so by removing `split_upto`% of the string until there is a match. or return no match. 
+    Keep Splitting a `splitting_string` based on the value of `split_value`.
+    It does so by removing `split_upto`% of the string until there is a match or return no match. 
     
     `split_upto` specifies the size after which it will stop splitting. 
 
@@ -91,7 +91,7 @@ class LatexToText():
             exit_code = process.wait()
             return output
         except Exception as e:
-            print(e)
+            print('Detex Exception,\n\n\n',e)
             raise LatexToTextException()
 
 

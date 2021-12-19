@@ -39,6 +39,6 @@ from .scraping_engine import \
         DailyHarvestationThread,\
         MassHarvestationThread
         
-from .mining_engine import MiningProcess
+from .mining_engine import MiningProcess,MiningEngine
 
 from .constants import *

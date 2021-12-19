@@ -55,6 +55,9 @@ class MiningEngine:
         
         return paper_obj
     
+    def run(self):
+        return self._paper_mining_logic()
+    
     def _paper_mining_logic(self):
         """_paper_mining_logic 
         1. Get unmined ArxivRecord
