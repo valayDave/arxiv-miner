@@ -4,7 +4,10 @@
 
 ## What is ArXiv-Miner
 
-`arxiv-miner` is a quick handy library that helps power [Sci-Genie](https://sci-genie.com). Sci-Genie is a search engine for quickly searching through full text of papers on CS ArXiv. `arxiv-miner` helps extract and parse LaTeX documents from CS ArXiv. It also supports storage and search of those parsed documents using **Elasticsearch**. The library can be applicable for all other domains like Math, Physics, Biology etc. 
+
+`arxiv-miner` is a quick handy library that helps power Sci-Genie [Project is no longer hosted and parts of it will be open-sourced in the future]. Sci-Genie was a search engine to quickly search through full text of papers on CS ArXiv. 
+
+`arxiv-miner` helps extract and parse LaTeX documents from CS ArXiv. It also supports storage and search of those parsed documents using **Elasticsearch**. The library can be applicable for all other domains like Math, Physics, Biology etc. 
 
 ## Why was ArXiv-Miner created ?
 ArXiv Miner was created for easily scraping, parsing and searching research content on ArXiv. This library was created after stitching together a solutions from the code of various tools like [arxiv-sanity](https://github.com/karpathy/arxiv-sanity-preserver), [arxiv-vanity/engrafo](https://github.com/arxiv-vanity/engrafo), [arxivscraper](https://github.com/Mahdisadjadi/arxivscraper), [tex2py](https://github.com/alvinwan/tex2py), [cso-classifier](https://github.com/angelosalatino/cso-classifier/) and [axcell](https://github.com/paperswithcode/axcell). Parsed structure of the content can be useful in search or any scientific research mining/AI applications as a heuristic baseline.
